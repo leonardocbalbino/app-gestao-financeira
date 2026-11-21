@@ -8,3 +8,5 @@ strictPeerDependencies: false
 
 allowBuilds:
   '@parcel/watcher': false
+  sharp: false
+  unrs-resolver: false

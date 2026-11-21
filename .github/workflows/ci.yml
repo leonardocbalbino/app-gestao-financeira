@@ -36,3 +36,30 @@ jobs:
           version: latest
       - run: supabase db start
       - run: supabase test db
+
+  admin-e2e:
+    name: Admin E2E (Playwright + Supabase local)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start -x vector,logflare,imgproxy,studio
+      - run: pnpm install --frozen-lockfile
+      - name: Variáveis do Supabase local
+        run: |
+          supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=' > /tmp/sb.env
+          source /tmp/sb.env
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+      - run: pnpm --filter @app/admin build
+      - run: pnpm --filter @app/admin exec playwright install --with-deps chromium
+      - run: pnpm --filter @app/admin exec playwright test
