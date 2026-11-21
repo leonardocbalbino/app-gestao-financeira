@@ -1,0 +1,10 @@
+packages:
+  - apps/*
+  - packages/*
+
+nodeLinker: hoisted
+autoInstallPeers: true
+strictPeerDependencies: false
+
+allowBuilds:
+  '@parcel/watcher': false

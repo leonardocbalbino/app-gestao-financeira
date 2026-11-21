@@ -1,0 +1,32 @@
+node_modules/
+.turbo/
+dist/
+coverage/
+.next/
+out/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+# Expo
+.expo/
+.expo-shared/
+apps/mobile/ios/
+apps/mobile/android/
+*.jks
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+# Supabase
+supabase/.branches/
+supabase/.temp/
+# Playwright
+test-results/
+playwright-report/
+# OS
+.DS_Store
+Thumbs.db
