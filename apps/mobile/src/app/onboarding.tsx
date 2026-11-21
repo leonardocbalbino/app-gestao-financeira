@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { FlatList, useWindowDimensions, View, type ListViewToken } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -32,10 +32,10 @@ export default function Onboarding() {
   const complete = usePrefs((s) => s.completeOnboarding);
   const [index, setIndex] = useState(0);
   const list = useRef<FlatList>(null);
-  const onViewable = useRef(({ viewableItems }: { viewableItems: ListViewToken[] }) => {
+  const onViewable = useCallback(({ viewableItems }: { viewableItems: ListViewToken[] }) => {
     const i = viewableItems[0]?.index;
     if (typeof i === 'number') setIndex(i);
-  }).current;
+  }, []);
 
   const finish = () => {
     complete();
