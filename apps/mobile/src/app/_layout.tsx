@@ -17,6 +17,7 @@ import { DatabaseProvider } from '@/data/DatabaseProvider';
 import { usePrefs } from '@/state/prefs';
 import { EntitlementsProvider } from '@/entitlements';
 import { AppEffects } from '@/app-effects/AppEffects';
+import { AuthProvider } from '@/auth/AuthProvider';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -35,6 +36,7 @@ function RootStack() {
       <Stack.Screen name="transaction/new" options={{ presentation: 'modal' }} />
       <Stack.Screen name="transaction/[id]" options={{ presentation: 'modal' }} />
       <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
     </Stack>
   );
 }
@@ -69,10 +71,12 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <DatabaseProvider>
             <EntitlementsProvider>
-              <ThemeProvider initialPreference={theme} onPreferenceChange={setTheme}>
-                <AppEffects />
-                <RootStack />
-              </ThemeProvider>
+              <AuthProvider>
+                <ThemeProvider initialPreference={theme} onPreferenceChange={setTheme}>
+                  <AppEffects />
+                  <RootStack />
+                </ThemeProvider>
+              </AuthProvider>
             </EntitlementsProvider>
           </DatabaseProvider>
         </QueryClientProvider>

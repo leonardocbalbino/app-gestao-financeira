@@ -1,4 +1,5 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
+import { usePrefs } from '@/state/prefs';
 import { useTheme } from '@/theme/ThemeProvider';
 import { Icon, type IconName } from '@/components/ui';
 import { AddTabButton } from '@/components/navigation/AddTabButton';
@@ -11,6 +12,8 @@ const tabIcon =
 
 export default function TabsLayout() {
   const t = useTheme();
+  const onboardingDone = usePrefs((s) => s.onboardingDone);
+  if (!onboardingDone) return <Redirect href="/onboarding" />;
   return (
     <Tabs
       screenOptions={{

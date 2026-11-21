@@ -37,3 +37,19 @@ jest.mock('expo-notifications', () => ({
   cancelScheduledNotificationAsync: jest.fn(async () => undefined),
   SchedulableTriggerInputTypes: { DATE: 'date' },
 }));
+
+jest.mock('react-native-purchases', () => ({
+  __esModule: true,
+  default: {
+    configure: jest.fn(),
+    logIn: jest.fn(),
+    getOfferings: jest.fn(async () => ({ current: null })),
+    addCustomerInfoUpdateListener: jest.fn(),
+    removeCustomerInfoUpdateListener: jest.fn(),
+    setLogLevel: jest.fn(),
+  },
+  LOG_LEVEL: { WARN: 'WARN' },
+  PACKAGE_TYPE: { MONTHLY: 'MONTHLY', ANNUAL: 'ANNUAL' },
+}));
+jest.mock('expo-apple-authentication', () => ({}));
+jest.mock('expo-web-browser', () => ({ maybeCompleteAuthSession: jest.fn() }));

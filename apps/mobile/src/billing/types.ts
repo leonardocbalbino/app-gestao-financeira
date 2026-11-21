@@ -24,5 +24,6 @@ export interface BillingService {
   restore(): Promise<PurchaseResult>;
   /** Abre a gestão de assinatura da loja. */
   manageSubscription(): Promise<void>;
-  onCustomerInfoChange(cb: () => void): () => void;
+  /** cb recebe se o entitlement Pro está ativo na loja. */
+  onCustomerInfoChange(cb: (hasPro: boolean) => void): () => void;
 }

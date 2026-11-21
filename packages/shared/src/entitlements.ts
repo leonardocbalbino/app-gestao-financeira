@@ -182,3 +182,33 @@ export function resolveCachedEntitlements(
   }
   return fallbackEntitlements(now);
 }
+
+/**
+ * Entitlements otimistas de um plano a partir da matriz (ex.: logo após a compra, antes do
+ * webhook chegar ao servidor). O servidor continua sendo a fonte da verdade no próximo refresh.
+ */
+export function entitlementsFromPlan(
+  matrix: PlanMatrix,
+  planId: string,
+  source: EntitlementSource,
+  now: Date = new Date(),
+): Entitlements {
+  const base = fallbackEntitlements(now);
+  const plan = matrix.plans.find((p) => p.id === planId);
+  const features = { ...base.features };
+  for (const v of matrix.values) {
+    if (v.plan_id !== planId) continue;
+    const def = FEATURE_CATALOG.find((f) => f.key === v.feature_key);
+    if (!def) continue;
+    features[def.key] =
+      def.type === 'limit' ? (typeof v.value === 'number' ? v.value : null) : Boolean(v.value);
+  }
+  return {
+    planId,
+    planName: plan?.name ?? planId,
+    source,
+    expiresAt: null,
+    features,
+    resolvedAt: now.toISOString(),
+  };
+}

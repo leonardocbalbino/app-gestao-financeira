@@ -217,3 +217,16 @@ describe('cache de entitlements', () => {
     expect(rows.find((r) => r.key === 'ads.show')?.values).toEqual({ free: true, pro: false });
   });
 });
+
+import { entitlementsFromPlan } from './entitlements';
+
+describe('entitlementsFromPlan', () => {
+  it('aplica valores do plano Pro da matriz', () => {
+    const e = entitlementsFromPlan(fallbackPlanMatrix(), 'pro', 'subscription');
+    expect(e.planName).toBe('Pro');
+    expect(e.features['ads.show']).toBe(false);
+    expect(e.features['budgets.max']).toBeNull();
+    expect(e.features['members.max']).toBe(5);
+    expect(e.features['export.pdf']).toBe(true);
+  });
+});

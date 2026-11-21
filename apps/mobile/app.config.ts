@@ -17,6 +17,7 @@ const config: ExpoConfig = {
   userInterfaceStyle: 'automatic',
   ios: {
     supportsTablet: false,
+    usesAppleSignIn: true,
     bundleIdentifier: IS_DEV ? `${brand.bundleId}.dev` : brand.bundleId,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
@@ -39,6 +40,8 @@ const config: ExpoConfig = {
     'expo-router',
     'expo-font',
     'expo-sqlite',
+    'expo-apple-authentication',
+    'expo-web-browser',
     ['expo-notifications', { color: brand.colors.primary }],
     [
       'expo-splash-screen',
