@@ -18,6 +18,7 @@ import { usePrefs } from '@/state/prefs';
 import { EntitlementsProvider } from '@/entitlements';
 import { AppEffects } from '@/app-effects/AppEffects';
 import { AuthProvider } from '@/auth/AuthProvider';
+import { AdsProvider } from '@/ads/AdsProvider';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -72,10 +73,12 @@ export default function RootLayout() {
           <DatabaseProvider>
             <EntitlementsProvider>
               <AuthProvider>
-                <ThemeProvider initialPreference={theme} onPreferenceChange={setTheme}>
-                  <AppEffects />
-                  <RootStack />
-                </ThemeProvider>
+                <AdsProvider>
+                  <ThemeProvider initialPreference={theme} onPreferenceChange={setTheme}>
+                    <AppEffects />
+                    <RootStack />
+                  </ThemeProvider>
+                </AdsProvider>
               </AuthProvider>
             </EntitlementsProvider>
           </DatabaseProvider>

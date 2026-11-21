@@ -25,6 +25,7 @@ import {
   useUpdateTransaction,
 } from '@/data/hooks';
 import { AmountInput } from './AmountInput';
+import { useInterstitial } from '@/ads/interstitial';
 
 const KIND_OPTIONS = [
   { value: 'expense' as const, label: 'Despesa' },
@@ -54,6 +55,7 @@ export function TransactionFormScreen({ id }: Props) {
   const update = useUpdateTransaction();
   const remove = useDeleteTransaction();
   const today = toISODate(new Date());
+  const maybeShowInterstitial = useInterstitial();
   const recurringEnabled = useFeature('transactions.recurring');
 
   const { control, handleSubmit, setValue, reset, formState } = useForm<TransactionForm>({
@@ -103,7 +105,10 @@ export function TransactionFormScreen({ id }: Props) {
 
   const onSubmit = handleSubmit(async (form) => {
     if (isEdit && id) await update.mutateAsync({ id, form });
-    else await create.mutateAsync(form);
+    else {
+      await create.mutateAsync(form);
+      maybeShowInterstitial();
+    }
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     router.back();
   });

@@ -53,3 +53,40 @@ jest.mock('react-native-purchases', () => ({
 }));
 jest.mock('expo-apple-authentication', () => ({}));
 jest.mock('expo-web-browser', () => ({ maybeCompleteAuthSession: jest.fn() }));
+
+jest.mock('react-native-google-mobile-ads', () => ({
+  __esModule: true,
+  default: () => ({ initialize: jest.fn(async () => []) }),
+  AdsConsent: {
+    gatherConsent: jest.fn(async () => ({
+      canRequestAds: false,
+      privacyOptionsRequirementStatus: 'NOT_REQUIRED',
+    })),
+    showPrivacyOptionsForm: jest.fn(async () => ({ canRequestAds: false })),
+  },
+  AdsConsentPrivacyOptionsRequirementStatus: { REQUIRED: 'REQUIRED', NOT_REQUIRED: 'NOT_REQUIRED' },
+  TestIds: { BANNER: 'test-banner', NATIVE: 'test-native', INTERSTITIAL: 'test-interstitial' },
+  BannerAd: () => null,
+  BannerAdSize: { BANNER: 'BANNER' },
+  NativeAd: { createForAdRequest: jest.fn(async () => null) },
+  NativeAdView: ({ children }: { children: unknown }) => children,
+  NativeAsset: ({ children }: { children: unknown }) => children,
+  NativeAssetType: {
+    ICON: 'icon',
+    HEADLINE: 'headline',
+    BODY: 'body',
+    CALL_TO_ACTION: 'callToAction',
+  },
+  InterstitialAd: { createForAdRequest: jest.fn() },
+  AdEventType: { LOADED: 'loaded', CLOSED: 'closed' },
+}));
+jest.mock('expo-tracking-transparency', () => ({
+  requestTrackingPermissionsAsync: jest.fn(async () => ({ granted: false })),
+}));
+
+// Mock padrão do expo-router (testes podem sobrescrever com jest.mock próprio).
+jest.mock('expo-router', () => ({
+  router: { push: jest.fn(), back: jest.fn(), replace: jest.fn() },
+  useLocalSearchParams: () => ({}),
+  Redirect: () => null,
+}));

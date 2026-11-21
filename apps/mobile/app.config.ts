@@ -42,6 +42,24 @@ const config: ExpoConfig = {
     'expo-sqlite',
     'expo-apple-authentication',
     'expo-web-browser',
+    [
+      'expo-tracking-transparency',
+      {
+        userTrackingPermission:
+          'Usamos este identificador para mostrar anúncios mais relevantes no plano gratuito. Você pode recusar sem perder nenhum recurso.',
+      },
+    ],
+    [
+      'react-native-google-mobile-ads',
+      {
+        // IDs de app de TESTE do Google como padrão; produção via EAS env.
+        androidAppId: process.env.ADMOB_ANDROID_APP_ID ?? 'ca-app-pub-3940256099942544~3347511713',
+        iosAppId: process.env.ADMOB_IOS_APP_ID ?? 'ca-app-pub-3940256099942544~1458002511',
+        delayAppMeasurementInit: true,
+        userTrackingUsageDescription:
+          'Usamos este identificador para mostrar anúncios mais relevantes no plano gratuito.',
+      },
+    ],
     ['expo-notifications', { color: brand.colors.primary }],
     [
       'expo-splash-screen',

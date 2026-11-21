@@ -18,6 +18,7 @@ import { DonutChart, type DonutSegment } from '@/components/charts/DonutChart';
 import { IncomeExpenseBars } from '@/components/charts/IncomeExpenseBars';
 import { useMonthSummary, useMonthlyTotals, useSpendingByCategory } from '@/data/hooks';
 import { useUI } from '@/state/ui';
+import { BannerSlot } from '@/ads/BannerSlot';
 import { FeatureGate, useEntitlements, useFeature } from '@/entitlements';
 import { monthlyInsights } from '@/features/reports/insights';
 
@@ -109,6 +110,8 @@ export default function ReportsScreen() {
           </AppText>
         ) : null}
       </Card>
+
+      <BannerSlot placement="banner_reports" />
 
       <SectionHeader title="Gastos por categoria" />
       <Card>

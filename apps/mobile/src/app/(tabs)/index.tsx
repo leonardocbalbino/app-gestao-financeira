@@ -3,6 +3,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { formatBRL, formatRelativeDay, greeting, monthKey, percent } from '@app/shared';
 import { buildAlerts } from '@/features/notifications/alerts';
+import { BannerSlot } from '@/ads/BannerSlot';
 import { useFeature } from '@/entitlements';
 import { useTheme } from '@/theme/ThemeProvider';
 import {
@@ -226,6 +227,8 @@ export default function HomeScreen() {
           </Card>
         </>
       ) : null}
+
+      <BannerSlot placement="banner_home" />
 
       <SectionHeader
         title="Últimas transações"

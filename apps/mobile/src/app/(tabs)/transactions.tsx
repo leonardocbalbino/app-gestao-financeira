@@ -10,6 +10,10 @@ import { MonthSwitcher } from '@/components/MonthSwitcher';
 import { TransactionRow } from '@/components/TransactionRow';
 import { useMonthSummary, useTransactions } from '@/data/hooks';
 import { groupByDay } from '@/features/transactions/groupByDay';
+import { withNativeSlots } from '@/ads/logic';
+import { useAdPlacement } from '@/ads/AdsProvider';
+import { NativeAdRow } from '@/ads/NativeAdRow';
+import { useEntitlementsContext } from '@/entitlements';
 import { useUI, type KindFilter } from '@/state/ui';
 import { usePrefs } from '@/state/prefs';
 
@@ -34,7 +38,13 @@ export default function TransactionsScreen() {
   );
   const txQ = useTransactions(filter);
   const summary = useMonthSummary(month);
-  const rows = useMemo(() => groupByDay(txQ.data ?? []), [txQ.data]);
+  const nativeEnabled = useAdPlacement('native_transactions') !== null;
+  const everyN = useEntitlementsContext().config.ads.native_every_n;
+  const rows = useMemo(
+    () =>
+      withNativeSlots(groupByDay(txQ.data ?? []), everyN, nativeEnabled, (r) => r.type === 'tx'),
+    [txQ.data, everyN, nativeEnabled],
+  );
   const openTx = useCallback(
     (id: string) => router.push({ pathname: '/transaction/[id]', params: { id } }),
     [],
@@ -116,7 +126,9 @@ export default function TransactionsScreen() {
         ListHeaderComponent={header}
         keyboardShouldPersistTaps="handled"
         renderItem={({ item: r }) =>
-          r.type === 'header' ? (
+          r.type === 'ad' ? (
+            <NativeAdRow />
+          ) : r.type === 'header' ? (
             <View
               accessibilityRole="header"
               style={{

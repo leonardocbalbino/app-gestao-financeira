@@ -20,6 +20,7 @@ import { MoneyField } from '@/components/ui/MoneyField';
 import { MonthSwitcher } from '@/components/MonthSwitcher';
 import { useBudgets, useCategories, useDeleteBudget, useUpsertBudget } from '@/data/hooks';
 import { useUI } from '@/state/ui';
+import { BannerSlot } from '@/ads/BannerSlot';
 import { isOverLimit, openPaywall, useLimit } from '@/entitlements';
 
 export default function BudgetsScreen() {
@@ -185,6 +186,7 @@ export default function BudgetsScreen() {
           );
         })
       )}
+      <BannerSlot placement="banner_budgets" />
     </Screen>
   );
 }

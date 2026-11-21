@@ -14,6 +14,7 @@ import { useEntitlements, useEntitlementsContext } from '@/entitlements';
 import { useDb } from '@/data/DatabaseProvider';
 import { resetLocalData } from '@/data/reset';
 import { storage } from '@/lib/storage';
+import { useAds } from '@/ads/AdsProvider';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'Sistema' },
@@ -39,6 +40,7 @@ export default function SettingsScreen() {
   const ent = useEntitlements();
   const { refresh } = useEntitlementsContext();
   const [busy, setBusy] = useState(false);
+  const ads = useAds();
   const chevron = <Icon name="chevron-right" color="inkSubtle" />;
   const isFree = ent.planId === 'free';
   const registered = !!user && !user.isAnonymous;
@@ -239,6 +241,14 @@ export default function SettingsScreen() {
           divider
           onPress={() => Linking.openURL(brand.privacyUrl)}
         />
+        {ads.privacyOptionsRequired ? (
+          <ListItem
+            title="Privacidade de anúncios"
+            right={chevron}
+            divider
+            onPress={() => void ads.showPrivacyOptions()}
+          />
+        ) : null}
         <ListItem
           title="Fale conosco"
           subtitle={brand.supportEmail}
