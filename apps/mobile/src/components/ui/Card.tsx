@@ -6,6 +6,7 @@ interface Props extends ViewProps {
   tone?: 'surface' | 'primary' | 'primarySoft' | 'pro' | 'danger';
   bordered?: boolean;
   onPress?: () => void;
+  onLongPress?: () => void;
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
 }
@@ -15,6 +16,7 @@ export function Card({
   tone = 'surface',
   bordered = true,
   onPress,
+  onLongPress,
   style,
   children,
   ...rest
@@ -37,11 +39,12 @@ export function Card({
     },
     style,
   ];
-  if (onPress) {
+  if (onPress || onLongPress) {
     return (
       <Pressable
         accessibilityRole="button"
         onPress={onPress}
+        onLongPress={onLongPress}
         style={({ pressed }) => [cardStyle, pressed && { opacity: 0.85 }]}
         {...rest}
       >

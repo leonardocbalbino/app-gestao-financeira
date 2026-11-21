@@ -28,3 +28,12 @@ jest.mock('react-native-mmkv', () => {
 });
 
 jest.mock('expo-sqlite', () => ({ openDatabaseSync: jest.fn() }));
+
+jest.mock('expo-notifications', () => ({
+  setNotificationHandler: jest.fn(),
+  getPermissionsAsync: jest.fn(async () => ({ granted: true, canAskAgain: true })),
+  requestPermissionsAsync: jest.fn(async () => ({ granted: true })),
+  scheduleNotificationAsync: jest.fn(async () => 'notif-id'),
+  cancelScheduledNotificationAsync: jest.fn(async () => undefined),
+  SchedulableTriggerInputTypes: { DATE: 'date' },
+}));

@@ -126,3 +126,24 @@ export function contrastRatio(a: string, b: string): number {
   const lo = Math.min(la, lb);
   return (hi + 0.05) / (lo + 0.05);
 }
+
+/**
+ * Cores de gráfico validadas (dataviz validate_palette): o par entradas/saídas usa danger claro
+ * também no escuro (ΔE CVD 18,8 vs 4,2 do token escuro). Identidade nunca só por cor:
+ * gráficos sempre trazem legenda + lista de valores.
+ */
+export function chartColors(scheme: 'light' | 'dark') {
+  return scheme === 'dark'
+    ? {
+        income: palette.chart2,
+        expense: palette.danger,
+        other: palette.inkSubtle,
+        gap: darkColors.surface,
+      }
+    : {
+        income: palette.primary,
+        expense: palette.danger,
+        other: palette.inkSubtle,
+        gap: lightColors.surface,
+      };
+}

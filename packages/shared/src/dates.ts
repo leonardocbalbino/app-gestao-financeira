@@ -110,3 +110,30 @@ export function greeting(now: Date = new Date()): string {
   if (h < 18) return 'Boa tarde';
   return 'Boa noite';
 }
+
+/** Soma meses a uma data civil, ajustando ao último dia do mês (31 jan + 1 → 28/29 fev). */
+export function addMonthsToDate(iso: ISODate, delta: number): ISODate {
+  const d = fromISODate(iso);
+  const day = d.getDate();
+  const target = new Date(d.getFullYear(), d.getMonth() + delta, 1);
+  const last = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(day, last));
+  return toISODate(target);
+}
+
+/** Próxima ocorrência conforme recorrência. */
+export function nextOccurrence(
+  iso: ISODate,
+  recurrence: 'none' | 'weekly' | 'monthly' | 'yearly',
+): ISODate | null {
+  switch (recurrence) {
+    case 'weekly':
+      return addDays(iso, 7);
+    case 'monthly':
+      return addMonthsToDate(iso, 1);
+    case 'yearly':
+      return addMonthsToDate(iso, 12);
+    default:
+      return null;
+  }
+}

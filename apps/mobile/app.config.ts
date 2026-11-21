@@ -38,6 +38,8 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     'expo-font',
+    'expo-sqlite',
+    ['expo-notifications', { color: brand.colors.primary }],
     [
       'expo-splash-screen',
       {

@@ -4,6 +4,10 @@ import { useDb } from './DatabaseProvider';
 import * as accountsRepo from './repositories/accounts';
 import * as categoriesRepo from './repositories/categories';
 import * as txRepo from './repositories/transactions';
+import * as budgetsRepo from './repositories/budgets';
+import * as goalsRepo from './repositories/goals';
+import * as billsRepo from './repositories/bills';
+import { cancelReminder, scheduleBillReminder } from '@/lib/notifications';
 
 /** Todas as queries locais ficam sob a raiz ['db'] — qualquer escrita invalida a árvore. */
 export const dbKeys = {
@@ -124,3 +128,97 @@ export const useUpdateCategory = () =>
   );
 export const useDeleteCategory = () =>
   useLocalMutation((db, id: string) => categoriesRepo.deleteCategory(db, id));
+
+// ---- Planejamento (Fase 3) ----
+
+export const planKeys = {
+  budgets: (m: MonthKey) => ['db', 'budgets', m] as const,
+  goals: ['db', 'goals'] as const,
+  openBills: ['db', 'bills', 'open'] as const,
+  paidBills: ['db', 'bills', 'paid'] as const,
+};
+
+export function useBudgets(month: MonthKey) {
+  const db = useDb();
+  return useQuery({
+    queryKey: planKeys.budgets(month),
+    queryFn: () => budgetsRepo.listBudgets(db, month),
+  });
+}
+
+export function useGoals() {
+  const db = useDb();
+  return useQuery({ queryKey: planKeys.goals, queryFn: () => goalsRepo.listGoals(db) });
+}
+
+export function useOpenBills() {
+  const db = useDb();
+  return useQuery({ queryKey: planKeys.openBills, queryFn: () => billsRepo.listOpenBills(db) });
+}
+
+export function usePaidBills() {
+  const db = useDb();
+  return useQuery({ queryKey: planKeys.paidBills, queryFn: () => billsRepo.listPaidBills(db) });
+}
+
+export const useUpsertBudget = () =>
+  useLocalMutation((db, input: budgetsRepo.BudgetInput) => budgetsRepo.upsertBudget(db, input));
+export const useDeleteBudget = () =>
+  useLocalMutation((db, id: string) => budgetsRepo.deleteBudget(db, id));
+
+export const useCreateGoal = () =>
+  useLocalMutation((db, input: goalsRepo.GoalInput) => goalsRepo.createGoal(db, input));
+export const useAddToGoal = () =>
+  useLocalMutation((db, a: { id: string; deltaCents: number }) =>
+    goalsRepo.addToGoal(db, a.id, a.deltaCents),
+  );
+export const useDeleteGoal = () =>
+  useLocalMutation((db, id: string) => goalsRepo.deleteGoal(db, id));
+
+/** Cria conta a pagar e, se `remind`, agenda lembrete local. */
+export function useCreateBill() {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { input: billsRepo.BillInput; remind: boolean }) => {
+      const bill = billsRepo.createBill(db, a.input);
+      if (a.remind) {
+        const nid = await scheduleBillReminder(bill).catch(() => null);
+        billsRepo.setBillNotification(db, bill.id, nid);
+      }
+      return bill;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: dbKeys.all }),
+  });
+}
+
+export function usePayBill() {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { id: string; accountId?: string; remind: boolean }) => {
+      const before = billsRepo.getBill(db, a.id);
+      const res = billsRepo.payBill(db, a.id, { accountId: a.accountId });
+      await cancelReminder(before?.notificationId).catch(() => undefined);
+      if (res?.next && a.remind) {
+        const nid = await scheduleBillReminder(res.next).catch(() => null);
+        billsRepo.setBillNotification(db, res.next.id, nid);
+      }
+      return res;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: dbKeys.all }),
+  });
+}
+
+export function useDeleteBill() {
+  const db = useDb();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const bill = billsRepo.getBill(db, id);
+      billsRepo.deleteBill(db, id);
+      await cancelReminder(bill?.notificationId).catch(() => undefined);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: dbKeys.all }),
+  });
+}

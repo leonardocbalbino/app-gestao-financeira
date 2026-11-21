@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
-import { greeting, monthKey, percent } from '@app/shared';
+import { formatBRL, formatRelativeDay, greeting, monthKey, percent } from '@app/shared';
+import { buildAlerts } from '@/features/notifications/alerts';
 import { useTheme } from '@/theme/ThemeProvider';
 import {
   AppText,
@@ -14,7 +16,14 @@ import {
   SectionHeader,
 } from '@/components/ui';
 import { TransactionRow } from '@/components/TransactionRow';
-import { useAccounts, useMonthSummary, useSpendingByCategory, useTransactions } from '@/data/hooks';
+import {
+  useAccounts,
+  useBudgets,
+  useMonthSummary,
+  useOpenBills,
+  useSpendingByCategory,
+  useTransactions,
+} from '@/data/hooks';
 import { usePrefs } from '@/state/prefs';
 
 export default function HomeScreen() {
@@ -26,6 +35,13 @@ export default function HomeScreen() {
   const summary = useMonthSummary(month);
   const byCategory = useSpendingByCategory(month);
   const recent = useTransactions({ limit: 5 });
+  const openBills = useOpenBills();
+  const budgets = useBudgets(month);
+  const alerts = useMemo(
+    () => buildAlerts(openBills.data ?? [], budgets.data ?? []),
+    [openBills.data, budgets.data],
+  );
+  const nextBill = openBills.data?.[0];
 
   const total = (accounts.data ?? []).reduce((s, a) => s + a.balanceCents, 0);
   const s = summary.data;
@@ -44,15 +60,72 @@ export default function HomeScreen() {
             Início
           </AppText>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Configurações"
-          onPress={() => router.push('/settings')}
-          style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
-        >
-          <Icon name="settings" size={22} color="inkMuted" />
-        </Pressable>
+        <View style={{ flexDirection: 'row' }}>
+          <Pressable
+            testID="home-notifications"
+            accessibilityRole="button"
+            accessibilityLabel={
+              alerts.length ? `Notificações, ${alerts.length} alerta(s)` : 'Notificações'
+            }
+            onPress={() => router.push('/notifications')}
+            style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Icon name="bell" size={22} color="inkMuted" />
+            {alerts.length ? (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  minWidth: 16,
+                  height: 16,
+                  borderRadius: 8,
+                  paddingHorizontal: 3,
+                  backgroundColor: t.colors.danger,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <AppText variant="micro" style={{ color: '#FFFFFF', fontSize: 10, lineHeight: 12 }}>
+                  {alerts.length}
+                </AppText>
+              </View>
+            ) : null}
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Configurações"
+            onPress={() => router.push('/settings')}
+            style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Icon name="settings" size={22} color="inkMuted" />
+          </Pressable>
+        </View>
       </View>
+
+      {nextBill ? (
+        <Card
+          tone={nextBill.status === 'overdue' ? 'danger' : 'surface'}
+          onPress={() => router.push('/bills')}
+          accessibilityLabel={`Próxima conta: ${nextBill.name}, ${formatBRL(nextBill.amountCents)}, ${formatRelativeDay(nextBill.dueDate)}`}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: t.spacing.md }}>
+            <IconBadge
+              name="calendar-clock"
+              tint={nextBill.status === 'overdue' ? t.colors.danger : t.colors.primary}
+            />
+            <View style={{ flex: 1 }}>
+              <AppText variant="caption" color="inkMuted">
+                {nextBill.status === 'overdue' ? 'Conta atrasada' : 'Próxima conta'}
+              </AppText>
+              <AppText variant="bodyStrong">
+                {nextBill.name} · {formatRelativeDay(nextBill.dueDate)}
+              </AppText>
+            </View>
+            <MoneyText cents={nextBill.amountCents} variant="bodyStrong" hidden={hide} />
+          </View>
+        </Card>
+      ) : null}
 
       <Card tone="primary" padding={t.spacing.xl}>
         <View

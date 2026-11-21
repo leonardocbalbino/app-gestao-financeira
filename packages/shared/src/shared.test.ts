@@ -178,3 +178,18 @@ describe('tema', () => {
     expect(contrastRatio(lightColors.proInk, lightColors.proSoft)).toBeGreaterThan(4.5);
   });
 });
+
+import { addMonthsToDate, nextOccurrence } from './dates';
+
+describe('recorrência', () => {
+  it('ajusta fim de mês', () => {
+    expect(addMonthsToDate('2026-01-31', 1)).toBe('2026-02-28');
+    expect(addMonthsToDate('2028-01-31', 1)).toBe('2028-02-29');
+    expect(addMonthsToDate('2026-11-15', 2)).toBe('2027-01-15');
+  });
+  it('próxima ocorrência', () => {
+    expect(nextOccurrence('2026-11-21', 'weekly')).toBe('2026-11-28');
+    expect(nextOccurrence('2026-11-21', 'yearly')).toBe('2027-11-21');
+    expect(nextOccurrence('2026-11-21', 'none')).toBeNull();
+  });
+});
