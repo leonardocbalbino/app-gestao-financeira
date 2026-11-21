@@ -90,3 +90,30 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({}),
   Redirect: () => null,
 }));
+
+jest.mock('posthog-react-native', () => ({
+  __esModule: true,
+  default: jest
+    .fn()
+    .mockImplementation(() => ({ capture: jest.fn(), identify: jest.fn(), reset: jest.fn() })),
+}));
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  setUser: jest.fn(),
+  captureException: jest.fn(),
+}));
+jest.mock('expo-print', () => ({
+  printToFileAsync: jest.fn(async () => ({ uri: 'file://x.pdf' })),
+}));
+jest.mock('expo-sharing', () => ({ shareAsync: jest.fn(async () => undefined) }));
+jest.mock('expo-file-system/legacy', () => ({
+  cacheDirectory: 'file://cache/',
+  EncodingType: { UTF8: 'utf8' },
+  writeAsStringAsync: jest.fn(async () => undefined),
+}));
+jest.mock('expo-local-authentication', () => ({
+  hasHardwareAsync: jest.fn(async () => true),
+  isEnrolledAsync: jest.fn(async () => true),
+  authenticateAsync: jest.fn(async () => ({ success: true })),
+}));
+jest.mock('expo-application', () => ({ nativeApplicationVersion: '1.0.0' }));

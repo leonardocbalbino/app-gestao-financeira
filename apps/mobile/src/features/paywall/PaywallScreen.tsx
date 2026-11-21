@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { analytics } from '@/lib/analytics';
+import { useAppStatus } from '@/features/app-status/RemoteConfigGate';
 import { Alert, Linking, Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -49,6 +51,7 @@ export function PaywallScreen({ source }: Props) {
   const { matrix, config, refresh } = useEntitlementsContext();
   const ent = useEntitlements();
   const [period, setPeriod] = useState<BillingPeriod>(config.app.paywall_default_plan);
+  const { maintenance } = useAppStatus();
   const [busy, setBusy] = useState<'buy' | 'restore' | null>(null);
 
   const packages = useQuery({
@@ -72,14 +75,20 @@ export function PaywallScreen({ source }: Props) {
   const sourceDef = source ? getFeatureDefinition(source) : undefined;
   const alreadyPro = ent.planId !== 'free' && ent.source !== 'fallback';
 
+  useEffect(() => {
+    analytics.track('paywall_viewed', { source: source ?? 'direct' });
+  }, [source]);
+
   const finish = async (kind: 'buy' | 'restore') => {
     setBusy(kind);
+    if (kind === 'buy') analytics.track('purchase_started', { period, source: source ?? 'direct' });
     try {
       const res =
         kind === 'buy' && selected
           ? await billing().purchase(selected.id)
           : await billing().restore();
       if (res.status === 'success') {
+        analytics.track(kind === 'buy' ? 'purchase_completed' : 'purchase_restored', { period });
         await refresh();
         router.back();
       } else if (res.status === 'error') {
@@ -256,7 +265,7 @@ export function PaywallScreen({ source }: Props) {
               variant="pro"
               onPress={() => finish('buy')}
               loading={busy === 'buy'}
-              disabled={!selected || !billing().isAvailable()}
+              disabled={!selected || !billing().isAvailable() || maintenance}
             />
             {!billing().isAvailable() ? (
               <AppText variant="caption" color="inkMuted" align="center">

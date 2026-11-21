@@ -15,6 +15,7 @@ import { useDb } from '@/data/DatabaseProvider';
 import { resetLocalData } from '@/data/reset';
 import { storage } from '@/lib/storage';
 import { useAds } from '@/ads/AdsProvider';
+import { authenticate, biometricsAvailable } from '@/features/app-status/AppLock';
 import { useSyncStatus, requestSync } from '@/sync/SyncManager';
 import { FeatureGate } from '@/entitlements';
 
@@ -38,6 +39,8 @@ export default function SettingsScreen() {
   const { preference, setPreference } = useThemePreference();
   const hide = usePrefs((s) => s.hideBalance);
   const toggleHide = usePrefs((s) => s.toggleHideBalance);
+  const appLock = usePrefs((s) => s.appLock);
+  const setAppLock = usePrefs((s) => s.setAppLock);
   const { user, online } = useAuth();
   const ent = useEntitlements();
   const { refresh } = useEntitlementsContext();
@@ -258,6 +261,32 @@ export default function SettingsScreen() {
               accessibilityLabel="Ocultar valores"
               value={hide}
               onValueChange={toggleHide}
+              trackColor={{ true: t.colors.primary, false: t.colors.chipBorder }}
+            />
+          </View>
+          <View
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+          >
+            <View style={{ flex: 1 }}>
+              <AppText variant="bodyStrong">Bloquear com biometria</AppText>
+              <AppText variant="caption" color="inkMuted">
+                Pede Face ID / digital ao abrir o app
+              </AppText>
+            </View>
+            <Switch
+              accessibilityLabel="Bloquear com biometria"
+              value={appLock}
+              onValueChange={async (v) => {
+                if (!v) return setAppLock(false);
+                if (!(await biometricsAvailable())) {
+                  Alert.alert(
+                    'Biometria indisponível',
+                    'Cadastre Face ID ou digital nas configurações do aparelho.',
+                  );
+                  return;
+                }
+                if (await authenticate()) setAppLock(true);
+              }}
               trackColor={{ true: t.colors.primary, false: t.colors.chipBorder }}
             />
           </View>

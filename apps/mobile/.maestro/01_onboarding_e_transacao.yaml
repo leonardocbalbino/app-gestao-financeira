@@ -1,0 +1,35 @@
+# Fluxo principal (Free): onboarding → nova despesa → aparece no Início.
+# Rodar: maestro test apps/mobile/.maestro (requer dev build instalado no simulador/emulador)
+appId: com.example.gestaofinanceira.dev
+---
+- clearState
+- launchApp
+- assertVisible:
+    id: screen-onboarding
+- tapOn:
+    id: onboarding-next
+- tapOn:
+    id: onboarding-next
+- tapOn:
+    id: onboarding-next
+- assertVisible:
+    id: screen-home
+- assertVisible: 'Nenhuma transação ainda'
+- tapOn:
+    id: tab-add
+- tapOn:
+    id: amount-input
+- inputText: '4590'
+- assertVisible: 'R$ 45,90'
+- tapOn:
+    id: tx-description
+- inputText: 'Mercado'
+- hideKeyboard
+- tapOn:
+    id: cat-alimentacao
+- tapOn:
+    id: tx-save
+- assertVisible:
+    id: screen-home
+- assertVisible: 'Mercado'
+- assertVisible: '−R$ 45,90'

@@ -19,7 +19,7 @@ select throws_ok($$select * from public.admin_search_users('')$$, '42501', 'forb
 -- Viewer lê, mas não escreve
 set local request.jwt.claims = '{"sub":"ffffffff-0000-0000-0000-000000000002","role":"authenticated"}';
 select ok((public.admin_stats() ->> 'users_total')::int >= 3, 'viewer vê estatísticas');
-select is((select email from public.admin_search_users('cliente@')), 'cliente@app.dev', 'busca por e-mail');
+select is((select email from public.admin_search_users('cliente@app.dev')), 'cliente@app.dev', 'busca por e-mail');
 select throws_ok(
   $$insert into public.manual_grants (user_id, plan_id) values ('ffffffff-0000-0000-0000-000000000003', 'pro')$$,
   '42501', null, 'viewer não concede Pro');

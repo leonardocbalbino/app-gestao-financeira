@@ -6,6 +6,8 @@ interface PrefsState {
   theme: ThemePreference;
   hideBalance: boolean;
   onboardingDone: boolean;
+  appLock: boolean;
+  setAppLock: (v: boolean) => void;
   setTheme: (t: ThemePreference) => void;
   toggleHideBalance: () => void;
   completeOnboarding: () => void;
@@ -21,6 +23,11 @@ export const usePrefs = create<PrefsState>((set, get) => ({
   theme: readTheme(),
   hideBalance: storage.getBoolean(PrefKeys.hideBalance) ?? false,
   onboardingDone: storage.getBoolean(PrefKeys.onboardingDone) ?? false,
+  appLock: storage.getBoolean('pref.appLock') ?? false,
+  setAppLock: (appLock) => {
+    storage.set('pref.appLock', appLock);
+    set({ appLock });
+  },
   setTheme: (theme) => {
     storage.set(PrefKeys.theme, theme);
     set({ theme });

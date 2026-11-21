@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { storage } from '@/lib/storage';
 import { syncOnce, type CursorStore } from './engine';
 import { createSupabaseRemote } from './supabaseRemote';
+import { useAppStatus } from '@/features/app-status/RemoteConfigGate';
 
 export interface SyncStatus {
   syncing: boolean;
@@ -51,11 +52,12 @@ export function SyncManager() {
   const qc = useQueryClient();
   const enabled = useFeature('sync.cloud');
   const { user } = useAuth();
+  const { maintenance } = useAppStatus();
   const running = useRef(false);
   const userId = user?.id ?? null;
 
   useEffect(() => {
-    if (!enabled || !userId || !supabase) return;
+    if (!enabled || !userId || !supabase || maintenance) return;
     const remote = createSupabaseRemote(supabase);
     const cursors = cursorStore(userId);
     let debounce: ReturnType<typeof setTimeout> | null = null;
@@ -97,7 +99,7 @@ export function SyncManager() {
       sub.remove();
       if (debounce) clearTimeout(debounce);
     };
-  }, [enabled, userId, db, qc]);
+  }, [enabled, userId, db, qc, maintenance]);
 
   return null;
 }

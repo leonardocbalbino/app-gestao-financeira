@@ -26,6 +26,7 @@ import {
 } from '@/data/hooks';
 import { AmountInput } from './AmountInput';
 import { useInterstitial } from '@/ads/interstitial';
+import { analytics } from '@/lib/analytics';
 
 const KIND_OPTIONS = [
   { value: 'expense' as const, label: 'Despesa' },
@@ -107,6 +108,10 @@ export function TransactionFormScreen({ id }: Props) {
     if (isEdit && id) await update.mutateAsync({ id, form });
     else {
       await create.mutateAsync(form);
+      analytics.track('transaction_created', {
+        kind: form.kind,
+        recurring: form.recurrence !== 'none',
+      });
       maybeShowInterstitial();
     }
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

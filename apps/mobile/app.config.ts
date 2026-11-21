@@ -12,6 +12,7 @@ const config: ExpoConfig = {
   slug: brand.slug,
   scheme: brand.scheme,
   version: '1.0.0',
+  runtimeVersion: { policy: 'appVersion' },
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'automatic',
@@ -21,6 +22,7 @@ const config: ExpoConfig = {
     bundleIdentifier: IS_DEV ? `${brand.bundleId}.dev` : brand.bundleId,
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
+      NSFaceIDUsageDescription: 'Usamos o Face ID para proteger o acesso às suas finanças.',
     },
   },
   android: {
@@ -32,6 +34,8 @@ const config: ExpoConfig = {
       monochromeImage: './assets/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
+    permissions: ['android.permission.USE_BIOMETRIC', 'android.permission.POST_NOTIFICATIONS'],
+    blockedPermissions: ['android.permission.RECORD_AUDIO', 'android.permission.READ_MEDIA_IMAGES'],
   },
   web: {
     favicon: './assets/favicon.png',
@@ -41,6 +45,11 @@ const config: ExpoConfig = {
     'expo-font',
     'expo-sqlite',
     'expo-apple-authentication',
+    [
+      'expo-local-authentication',
+      { faceIDPermission: 'Usamos o Face ID para proteger o acesso às suas finanças.' },
+    ],
+    '@sentry/react-native',
     'expo-web-browser',
     [
       'expo-tracking-transparency',

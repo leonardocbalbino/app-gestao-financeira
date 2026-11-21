@@ -6,6 +6,8 @@ import { billing, setBillingService } from '@/billing';
 import { createRevenueCatBilling } from '@/billing/revenueCatBilling';
 import { env } from '@/lib/env';
 import { useEntitlementsContext } from '@/entitlements';
+import { analytics } from '@/lib/analytics';
+import { setMonitoringUser } from '@/lib/monitoring';
 
 export interface AuthUser {
   id: string;
@@ -63,6 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Vincula compras ao usuário do Supabase e recarrega entitlements quando o usuário muda.
   const userId = user?.id ?? null;
   useEffect(() => {
+    if (userId) analytics.identify(userId);
+    setMonitoringUser(userId);
     void billing()
       .configure(userId)
       .catch(() => undefined)

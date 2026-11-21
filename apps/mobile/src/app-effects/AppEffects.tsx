@@ -7,6 +7,7 @@ import { materializeRecurring } from '@/data/repositories/recurring';
 import { useFeature } from '@/entitlements';
 import { ensureAnonymousSession } from '@/auth/authService';
 import { usePrefs } from '@/state/prefs';
+import { analytics } from '@/lib/analytics';
 
 /** Efeitos globais do app (sem UI): recorrências agora; sync/ads/auth nas próximas fases. */
 export function AppEffects() {
@@ -14,6 +15,10 @@ export function AppEffects() {
   const qc = useQueryClient();
   const recurring = useFeature('transactions.recurring');
   const onboardingDone = usePrefs((s) => s.onboardingDone);
+
+  useEffect(() => {
+    analytics.track('app_open');
+  }, []);
 
   // Garante uma sessão (anônima) para vincular compras e entitlements; offline não bloqueia.
   useEffect(() => {

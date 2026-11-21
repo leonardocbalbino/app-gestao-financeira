@@ -13,6 +13,7 @@ import {
   type EmailFlow,
 } from '@/auth/authService';
 import { useAuth } from '@/auth/AuthProvider';
+import { analytics } from '@/lib/analytics';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -48,6 +49,7 @@ export default function LoginScreen() {
   };
 
   const done = () => {
+    analytics.track('login_completed');
     Alert.alert('Pronto!', 'Sua conta está conectada.');
     router.back();
   };

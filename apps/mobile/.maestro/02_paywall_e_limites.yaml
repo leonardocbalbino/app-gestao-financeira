@@ -1,0 +1,16 @@
+# Free: recurso Pro bloqueado leva ao paywall com contexto; tabela vem da matriz.
+appId: com.example.gestaofinanceira.dev
+---
+- launchApp
+- tapOn: 'Relatórios'
+- tapOn:
+    id: export-pdf
+- assertVisible:
+    id: screen-paywall
+- assertVisible: 'Desbloqueie: Exportar PDF'
+- assertVisible: 'Relatório em PDF'
+- assertVisible: 'Sem anúncios'
+- tapOn: 'Fechar'
+- tapOn: 'Orçamentos'
+- assertVisible:
+    id: screen-budgets

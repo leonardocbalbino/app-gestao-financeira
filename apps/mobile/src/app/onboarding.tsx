@@ -7,6 +7,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { AppText, Button, Icon, type IconName } from '@/components/ui';
 import { usePrefs } from '@/state/prefs';
 import { ensureAnonymousSession } from '@/auth/authService';
+import { analytics } from '@/lib/analytics';
 
 const SLIDES: { icon: IconName; title: string; text: string }[] = [
   {
@@ -39,6 +40,7 @@ export default function Onboarding() {
 
   const finish = () => {
     complete();
+    analytics.track('onboarding_completed', { skipped: index < SLIDES.length - 1 });
     // Sessão anônima em segundo plano; o app funciona offline se falhar.
     void ensureAnonymousSession().catch(() => undefined);
     router.replace('/');

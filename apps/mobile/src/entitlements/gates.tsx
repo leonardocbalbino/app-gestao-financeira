@@ -10,10 +10,12 @@ import {
 } from '@app/shared';
 import { useTheme } from '@/theme/ThemeProvider';
 import { AppText, Button, Card, Icon, ProBadge } from '@/components/ui';
+import { analytics } from '@/lib/analytics';
 import { useFeature, useLimit } from './hooks';
 
 /** Abre o paywall registrando de onde veio (para analytics e copy contextual). */
 export function openPaywall(source: FeatureKey | string) {
+  analytics.track('feature_locked_tapped', { source });
   router.push({ pathname: '/paywall', params: { source } });
 }
 

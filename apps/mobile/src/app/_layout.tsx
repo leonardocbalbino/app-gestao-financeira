@@ -20,8 +20,12 @@ import { AppEffects } from '@/app-effects/AppEffects';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { AdsProvider } from '@/ads/AdsProvider';
 import { SyncManager } from '@/sync/SyncManager';
+import { initMonitoring } from '@/lib/monitoring';
+import { RemoteConfigGate } from '@/features/app-status/RemoteConfigGate';
+import { AppLock } from '@/features/app-status/AppLock';
 
 void SplashScreen.preventAutoHideAsync();
+initMonitoring();
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -78,7 +82,10 @@ export default function RootLayout() {
                   <ThemeProvider initialPreference={theme} onPreferenceChange={setTheme}>
                     <AppEffects />
                     <SyncManager />
-                    <RootStack />
+                    <RemoteConfigGate>
+                      <RootStack />
+                    </RemoteConfigGate>
+                    <AppLock />
                   </ThemeProvider>
                 </AdsProvider>
               </AuthProvider>

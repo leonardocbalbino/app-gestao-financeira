@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useWindowDimensions, View } from 'react-native';
+import { Alert, useWindowDimensions, View } from 'react-native';
 import { addMonths, formatBRL, getLimit, monthKey, percent } from '@app/shared';
 import { chartColors } from '@app/shared/theme';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -19,7 +19,11 @@ import { IncomeExpenseBars } from '@/components/charts/IncomeExpenseBars';
 import { useMonthSummary, useMonthlyTotals, useSpendingByCategory } from '@/data/hooks';
 import { useUI } from '@/state/ui';
 import { BannerSlot } from '@/ads/BannerSlot';
-import { FeatureGate, useEntitlements, useFeature } from '@/entitlements';
+import { FeatureGate, openPaywall, useEntitlements, useFeature } from '@/entitlements';
+import { exportMonthCsv, exportMonthlyPdf } from '@/features/export/exporter';
+import { useDb } from '@/data/DatabaseProvider';
+import { analytics } from '@/lib/analytics';
+import { Button, ProBadge } from '@/components/ui';
 import { monthlyInsights } from '@/features/reports/insights';
 
 /** Até 4 categorias com cor própria; o restante vira "Outras" (nunca gera cor nova). */
@@ -30,6 +34,10 @@ export default function ReportsScreen() {
   const { width } = useWindowDimensions();
   const { month: selectedMonth, setMonth } = useUI();
   const advanced = useFeature('reports.advanced');
+  const db = useDb();
+  const canPdf = useFeature('export.pdf');
+  const canCsv = useFeature('export.csv');
+  const [exporting, setExporting] = useState<'pdf' | 'csv' | null>(null);
   const historyMonths = getLimit(useEntitlements(), 'history.months');
   // Histórico visível: mês atual + (N-1) anteriores. null = ilimitado. Dados antigos não são
   // apagados — apenas ficam fora do período visível no plano atual.
@@ -75,6 +83,39 @@ export default function ReportsScreen() {
         Relatórios
       </AppText>
       <MonthSwitcher month={month} onChange={setMonth} minMonth={minMonth} />
+      <View style={{ flexDirection: 'row', gap: t.spacing.sm }}>
+        {(
+          [
+            ['pdf', 'Relatório PDF', canPdf, 'export.pdf'],
+            ['csv', 'Planilha CSV', canCsv, 'export.csv'],
+          ] as const
+        ).map(([kind, label, allowed, feature]) => (
+          <View key={kind} style={{ flex: 1 }}>
+            <Button
+              testID={`export-${kind}`}
+              label={label}
+              size="md"
+              variant={allowed ? 'secondary' : 'pro'}
+              icon={allowed ? undefined : <ProBadge label="PRO" />}
+              loading={exporting === kind}
+              accessibilityHint={allowed ? undefined : 'Recurso Pro. Abre os planos.'}
+              onPress={async () => {
+                if (!allowed) return openPaywall(feature);
+                setExporting(kind);
+                try {
+                  if (kind === 'pdf') await exportMonthlyPdf(db, month);
+                  else await exportMonthCsv(db, month);
+                  analytics.track(kind === 'pdf' ? 'export_pdf' : 'export_csv');
+                } catch {
+                  Alert.alert('Não foi possível exportar', 'Tente novamente.');
+                } finally {
+                  setExporting(null);
+                }
+              }}
+            />
+          </View>
+        ))}
+      </View>
       {minMonth && month <= minMonth ? (
         <AppText variant="caption" color="inkMuted" align="center">
           Seu plano mostra {historyMonths} meses de histórico.

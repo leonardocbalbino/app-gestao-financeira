@@ -1,0 +1,8 @@
+appId: com.example.gestaofinanceira.dev
+---
+- launchApp
+- tapOn: 'Configurações'
+- tapOn: 'Escuro'
+- tapOn: 'Ocultar valores'
+- tapOn: 'Voltar'
+- assertVisible: 'R$ ••••'
