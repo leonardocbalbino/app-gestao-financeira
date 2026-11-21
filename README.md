@@ -2,7 +2,7 @@
 
 App de finanças pessoais (iOS/Android) com plano Free (com anúncios) e Pro (assinatura). Feito para funcionar offline primeiro (local-first). As funcionalidades de cada plano vêm de uma matriz controlada por um painel admin.
 
-> Para trocar nome, slug, bundle id e cores, edite **somente** [`packages/shared/src/brand.ts`](packages/shared/src/brand.ts).
+> Para trocar nome, slug, bundle id e cores, edite **somente** [`packages/shared/src/brand.json`](packages/shared/src/brand.json).
 
 ## Estrutura
 

@@ -11,9 +11,18 @@ interface Props {
   icon?: ReactNode;
   tone?: 'default' | 'pro';
   testID?: string;
+  accessibilityLabel?: string;
 }
 
-export function Chip({ label, selected, onPress, icon, tone = 'default', testID }: Props) {
+export function Chip({
+  label,
+  selected,
+  onPress,
+  icon,
+  tone = 'default',
+  testID,
+  accessibilityLabel,
+}: Props) {
   const t = useTheme();
   const c = t.colors;
   const bg = selected ? (tone === 'pro' ? c.proSoft : c.primarySoft) : c.surface;
@@ -34,13 +43,15 @@ export function Chip({ label, selected, onPress, icon, tone = 'default', testID 
       }}
     >
       {icon}
-      <AppText
-        variant="caption"
-        weight="semibold"
-        color={t.scheme === 'dark' && selected ? 'ink' : fg}
-      >
-        {label}
-      </AppText>
+      {label ? (
+        <AppText
+          variant="caption"
+          weight="semibold"
+          color={t.scheme === 'dark' && selected ? 'ink' : fg}
+        >
+          {label}
+        </AppText>
+      ) : null}
     </View>
   );
   if (!onPress) return content;
@@ -50,7 +61,7 @@ export function Chip({ label, selected, onPress, icon, tone = 'default', testID 
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected: !!selected }}
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       hitSlop={(minTouchTarget - 36) / 2}
     >
       {content}

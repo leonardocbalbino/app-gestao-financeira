@@ -10,3 +10,5 @@ export { Screen } from './Screen';
 export { EmptyState, ErrorState } from './StateViews';
 export { ProBadge } from './ProBadge';
 export { SectionHeader } from './SectionHeader';
+export { TextField } from './TextField';
+export { Segmented } from './Segmented';

@@ -22,14 +22,14 @@ describe('Button', () => {
   it('dispara onPress e expõe role', async () => {
     const onPress = jest.fn();
     await wrap(<Button label="Salvar" onPress={onPress} />);
-    fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
   it('não dispara quando desabilitado', async () => {
     const onPress = jest.fn();
     await wrap(<Button label="Salvar" onPress={onPress} disabled />);
-    fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Salvar' }));
     expect(onPress).not.toHaveBeenCalled();
   });
 });
@@ -64,7 +64,7 @@ describe('EmptyState', () => {
         onAction={onAction}
       />,
     );
-    fireEvent.press(screen.getByRole('button', { name: 'Adicionar' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Adicionar' }));
     expect(onAction).toHaveBeenCalled();
   });
 });

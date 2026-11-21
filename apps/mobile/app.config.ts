@@ -1,10 +1,10 @@
 import type { ExpoConfig } from 'expo/config';
-import { brand } from '../../packages/shared/src/brand';
+import brand from '../../packages/shared/src/brand.json';
 
 const IS_DEV = process.env.APP_VARIANT === 'development';
 
 /**
- * Configuração do app. Nome, slug, bundle id e cores vêm de packages/shared/src/brand.ts.
+ * Configuração do app. Nome, slug, bundle id e cores vêm de packages/shared/src/brand.json.
  * Chaves sensíveis/ambientais vêm de variáveis EXPO_PUBLIC_* (EAS env) — nunca commitadas.
  */
 const config: ExpoConfig = {

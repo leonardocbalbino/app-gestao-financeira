@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import {
@@ -11,7 +11,10 @@ import {
 } from '@expo-google-fonts/plus-jakarta-sans';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
+import { DatabaseProvider } from '@/data/DatabaseProvider';
+import { usePrefs } from '@/state/prefs';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -27,10 +30,8 @@ function RootStack() {
       }}
     >
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen
-        name="transaction/new"
-        options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-      />
+      <Stack.Screen name="transaction/new" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="transaction/[id]" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }
@@ -43,6 +44,14 @@ export default function RootLayout() {
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
   });
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
+      }),
+  );
+  const theme = usePrefs((s) => s.theme);
+  const setTheme = usePrefs((s) => s.setTheme);
   const ready = fontsLoaded || !!fontError;
 
   useEffect(() => {
@@ -54,9 +63,13 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <ThemeProvider>
-          <RootStack />
-        </ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <DatabaseProvider>
+            <ThemeProvider initialPreference={theme} onPreferenceChange={setTheme}>
+              <RootStack />
+            </ThemeProvider>
+          </DatabaseProvider>
+        </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
