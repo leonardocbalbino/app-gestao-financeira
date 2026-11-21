@@ -6,14 +6,16 @@ import { Card, EmptyState, Icon, IconBadge, ListItem, Screen } from '@/component
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useBudgets, useOpenBills } from '@/data/hooks';
 import { buildAlerts } from '@/features/notifications/alerts';
+import { useFeature } from '@/entitlements';
 
 export default function NotificationsScreen() {
   const t = useTheme();
+  const budgetAlerts = useFeature('budgets.alerts');
   const bills = useOpenBills();
   const budgets = useBudgets(monthKey(new Date()));
   const alerts = useMemo(
-    () => buildAlerts(bills.data ?? [], budgets.data ?? []),
-    [bills.data, budgets.data],
+    () => buildAlerts(bills.data ?? [], budgets.data ?? [], { budgetAlerts }),
+    [bills.data, budgets.data, budgetAlerts],
   );
 
   return (

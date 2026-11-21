@@ -142,3 +142,43 @@ export function buildComparisonRows(matrix: PlanMatrix): PlanComparisonRow[] {
     return { key, label: def.paywallLabel, values };
   });
 }
+
+/**
+ * Matriz de fallback (primeiro uso offline). Espelha o seed: Free = defaults do catálogo,
+ * Pro = booleanos liberados, sem anúncios, limites ilimitados (membros: 5).
+ */
+export function fallbackPlanMatrix(): PlanMatrix {
+  return {
+    plans: [
+      { id: 'free', name: 'Free', is_default: true, sort_order: 0, rc_entitlement: null },
+      { id: 'pro', name: 'Pro', is_default: false, sort_order: 1, rc_entitlement: 'pro' },
+    ],
+    values: FEATURE_CATALOG.flatMap((f) => [
+      { plan_id: 'free', feature_key: f.key, value: f.defaultValue },
+      {
+        plan_id: 'pro',
+        feature_key: f.key,
+        value:
+          f.type === 'boolean'
+            ? true
+            : f.type === 'ads'
+              ? false
+              : f.key === 'members.max'
+                ? 5
+                : null,
+      },
+    ]),
+    paywall_keys: FEATURE_CATALOG.map((f) => f.key),
+  };
+}
+
+/** Usa o cache apenas se ainda não expirou; caso contrário, cai para o Free embutido. */
+export function resolveCachedEntitlements(
+  cached: Entitlements | undefined | null,
+  now: Date = new Date(),
+): Entitlements {
+  if (cached && (!cached.expiresAt || new Date(cached.expiresAt).getTime() > now.getTime())) {
+    return cached;
+  }
+  return fallbackEntitlements(now);
+}

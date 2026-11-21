@@ -15,6 +15,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { DatabaseProvider } from '@/data/DatabaseProvider';
 import { usePrefs } from '@/state/prefs';
+import { EntitlementsProvider } from '@/entitlements';
+import { AppEffects } from '@/app-effects/AppEffects';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -32,6 +34,7 @@ function RootStack() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="transaction/new" options={{ presentation: 'modal' }} />
       <Stack.Screen name="transaction/[id]" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }
@@ -65,9 +68,12 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <DatabaseProvider>
-            <ThemeProvider initialPreference={theme} onPreferenceChange={setTheme}>
-              <RootStack />
-            </ThemeProvider>
+            <EntitlementsProvider>
+              <ThemeProvider initialPreference={theme} onPreferenceChange={setTheme}>
+                <AppEffects />
+                <RootStack />
+              </ThemeProvider>
+            </EntitlementsProvider>
           </DatabaseProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

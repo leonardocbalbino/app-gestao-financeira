@@ -22,6 +22,7 @@ import {
 } from '@/components/ui';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { isOverLimit, LimitedAddButton, openPaywall, useLimit } from '@/entitlements';
 import { useAddToGoal, useCreateGoal, useDeleteGoal, useGoals } from '@/data/hooks';
 
 const DEADLINES = [
@@ -45,6 +46,8 @@ export default function GoalsScreen() {
   const [depositFor, setDepositFor] = useState<string | null>(null);
   const [deposit, setDeposit] = useState(0);
   const today = toISODate(new Date());
+  const limitState = useLimit('goals.max');
+  const startAdding = () => (limitState.reached ? openPaywall('goals.max') : setAdding(true));
 
   const save = async () => {
     if (!name.trim()) return setError('Informe o nome');
@@ -79,12 +82,13 @@ export default function GoalsScreen() {
             title="Nenhuma meta"
             message="Crie uma meta de economia — viagem, reserva de emergência, um sonho."
             actionLabel="Criar meta"
-            onAction={() => setAdding(true)}
+            onAction={startAdding}
           />
         </Card>
       ) : null}
 
-      {(goals.data ?? []).map((g) => {
+      {(goals.data ?? []).map((g, index) => {
+        const readOnly = isOverLimit(limitState, index);
         const ratio = g.targetCents ? g.savedCents / g.targetCents : 0;
         const done = g.savedCents >= g.targetCents;
         const daysLeft = g.deadline ? daysBetween(today, g.deadline) : null;
@@ -131,7 +135,15 @@ export default function GoalsScreen() {
                 Meta alcançada! 🎉
               </AppText>
             ) : null}
-            {depositFor === g.id ? (
+            {readOnly ? (
+              <Button
+                label="Somente leitura · liberar no Pro"
+                variant="pro"
+                size="md"
+                onPress={() => openPaywall('goals.max')}
+                style={{ marginTop: t.spacing.md }}
+              />
+            ) : depositFor === g.id ? (
               <View style={{ gap: t.spacing.sm, marginTop: t.spacing.md }}>
                 <MoneyField label="Valor" value={deposit} onChange={setDeposit} />
                 <View style={{ flexDirection: 'row', gap: t.spacing.sm }}>
@@ -191,7 +203,7 @@ export default function GoalsScreen() {
           </View>
         </Card>
       ) : (goals.data ?? []).length > 0 ? (
-        <Button label="Nova meta" variant="secondary" onPress={() => setAdding(true)} />
+        <LimitedAddButton feature="goals.max" label="Nova meta" onPress={() => setAdding(true)} />
       ) : null}
     </Screen>
   );

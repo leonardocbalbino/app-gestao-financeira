@@ -14,6 +14,7 @@ import {
   TextField,
 } from '@/components/ui';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { LimitedAddButton } from '@/entitlements';
 import { useAccounts, useCreateAccount, useDeleteAccount } from '@/data/hooks';
 
 const TYPES: { value: AccountType; label: string; icon: string }[] = [
@@ -110,7 +111,12 @@ export default function AccountsScreen() {
           </View>
         </Card>
       ) : (
-        <Button label="Adicionar conta" variant="secondary" onPress={() => setAdding(true)} />
+        <LimitedAddButton
+          feature="accounts.max"
+          label="Adicionar conta"
+          onPress={() => setAdding(true)}
+          testID="add-account"
+        />
       )}
       <AppText variant="caption" color="inkSubtle" align="center">
         Toque e segure uma conta para removê-la.

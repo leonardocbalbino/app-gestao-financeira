@@ -193,3 +193,27 @@ describe('recorrência', () => {
     expect(nextOccurrence('2026-11-21', 'none')).toBeNull();
   });
 });
+
+import { fallbackPlanMatrix, resolveCachedEntitlements } from './entitlements';
+
+describe('cache de entitlements', () => {
+  const now = new Date('2026-11-21T12:00:00Z');
+  const pro = { ...fallbackEntitlements(now), planId: 'pro', source: 'subscription' as const };
+  it('mantém cache válido', () => {
+    expect(
+      resolveCachedEntitlements({ ...pro, expiresAt: '2026-12-01T00:00:00Z' }, now).planId,
+    ).toBe('pro');
+    expect(resolveCachedEntitlements({ ...pro, expiresAt: null }, now).planId).toBe('pro');
+  });
+  it('descarta cache expirado ou ausente', () => {
+    expect(
+      resolveCachedEntitlements({ ...pro, expiresAt: '2026-11-01T00:00:00Z' }, now).planId,
+    ).toBe('free');
+    expect(resolveCachedEntitlements(undefined, now).source).toBe('fallback');
+  });
+  it('matriz de fallback tem Free e Pro para todas as features', () => {
+    const rows = buildComparisonRows(fallbackPlanMatrix());
+    expect(rows).toHaveLength(FEATURE_CATALOG.length);
+    expect(rows.find((r) => r.key === 'ads.show')?.values).toEqual({ free: true, pro: false });
+  });
+});

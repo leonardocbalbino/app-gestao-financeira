@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
-import { addMonths, formatBRL, percent } from '@app/shared';
+import { addMonths, formatBRL, getLimit, monthKey, percent } from '@app/shared';
 import { chartColors } from '@app/shared/theme';
 import { useTheme } from '@/theme/ThemeProvider';
 import {
   AppText,
   Card,
   EmptyState,
+  Icon,
   ListItem,
   MoneyText,
   Screen,
@@ -17,6 +18,8 @@ import { DonutChart, type DonutSegment } from '@/components/charts/DonutChart';
 import { IncomeExpenseBars } from '@/components/charts/IncomeExpenseBars';
 import { useMonthSummary, useMonthlyTotals, useSpendingByCategory } from '@/data/hooks';
 import { useUI } from '@/state/ui';
+import { FeatureGate, useEntitlements, useFeature } from '@/entitlements';
+import { monthlyInsights } from '@/features/reports/insights';
 
 /** Até 4 categorias com cor própria; o restante vira "Outras" (nunca gera cor nova). */
 const MAX_SLICES = 4;
@@ -24,10 +27,20 @@ const MAX_SLICES = 4;
 export default function ReportsScreen() {
   const t = useTheme();
   const { width } = useWindowDimensions();
-  const { month, setMonth } = useUI();
+  const { month: selectedMonth, setMonth } = useUI();
+  const advanced = useFeature('reports.advanced');
+  const historyMonths = getLimit(useEntitlements(), 'history.months');
+  // Histórico visível: mês atual + (N-1) anteriores. null = ilimitado. Dados antigos não são
+  // apagados — apenas ficam fora do período visível no plano atual.
+  const minMonth =
+    historyMonths === null
+      ? undefined
+      : addMonths(monthKey(new Date()), -(Math.max(1, historyMonths) - 1));
+  const month = minMonth && selectedMonth < minMonth ? minMonth : selectedMonth;
   const summary = useMonthSummary(month);
   const prev = useMonthSummary(addMonths(month, -1));
   const byCat = useSpendingByCategory(month);
+  const prevByCat = useSpendingByCategory(addMonths(month, -1));
   const trend = useMonthlyTotals(addMonths(month, -5), month);
   const [selected, setSelected] = useState<string | null>(null);
   const colors = chartColors(t.scheme);
@@ -50,13 +63,22 @@ export default function ReportsScreen() {
   const prevExpense = prev.data?.expenseCents ?? 0;
   const delta = prevExpense ? Math.round(((expense - prevExpense) / prevExpense) * 100) : null;
   const sel = segments.find((x) => x.key === selected);
+  const insights = useMemo(
+    () => (s && prev.data ? monthlyInsights(s, prev.data, cats, prevByCat.data ?? []) : []),
+    [s, prev.data, cats, prevByCat.data],
+  );
 
   return (
     <Screen testID="screen-reports">
       <AppText variant="title" accessibilityRole="header">
         Relatórios
       </AppText>
-      <MonthSwitcher month={month} onChange={setMonth} />
+      <MonthSwitcher month={month} onChange={setMonth} minMonth={minMonth} />
+      {minMonth && month <= minMonth ? (
+        <AppText variant="caption" color="inkMuted" align="center">
+          Seu plano mostra {historyMonths} meses de histórico.
+        </AppText>
+      ) : null}
 
       <Card>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -79,7 +101,7 @@ export default function ReportsScreen() {
             <MoneyText cents={s?.netCents ?? 0} variant="bodyStrong" />
           </View>
         </View>
-        {delta !== null ? (
+        {delta !== null && advanced ? (
           <AppText variant="caption" color="inkMuted" style={{ marginTop: t.spacing.sm }}>
             {delta === 0
               ? 'Gastos iguais ao mês anterior'
@@ -147,10 +169,37 @@ export default function ReportsScreen() {
         )}
       </Card>
 
+      <SectionHeader title="Insights do mês" />
+      <FeatureGate feature="insights.monthly">
+        <Card>
+          <View style={{ gap: t.spacing.md }}>
+            {insights.length === 0 ? (
+              <AppText variant="caption" color="inkMuted">
+                Registre mais transações para receber insights.
+              </AppText>
+            ) : (
+              insights.map((i) => (
+                <View
+                  key={i.id}
+                  style={{ flexDirection: 'row', gap: t.spacing.md, alignItems: 'center' }}
+                >
+                  <Icon name={i.icon} color="primary" />
+                  <AppText variant="body" style={{ flex: 1 }}>
+                    {i.text}
+                  </AppText>
+                </View>
+              ))
+            )}
+          </View>
+        </Card>
+      </FeatureGate>
+
       <SectionHeader title="Últimos 6 meses" />
-      <Card>
-        <IncomeExpenseBars data={trend.data ?? []} width={width - 40 - 32} />
-      </Card>
+      <FeatureGate feature="reports.advanced">
+        <Card>
+          <IncomeExpenseBars data={trend.data ?? []} width={width - 40 - 32} />
+        </Card>
+      </FeatureGate>
     </Screen>
   );
 }

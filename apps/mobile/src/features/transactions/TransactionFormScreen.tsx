@@ -13,7 +13,8 @@ import {
   type TransactionForm,
 } from '@app/shared';
 import { useTheme } from '@/theme/ThemeProvider';
-import { AppText, Button, Chip, Icon, Segmented, TextField } from '@/components/ui';
+import { AppText, Button, Chip, Icon, ProBadge, Segmented, TextField } from '@/components/ui';
+import { openPaywall, useFeature } from '@/entitlements';
 import {
   useAccounts,
   useCategories,
@@ -53,6 +54,7 @@ export function TransactionFormScreen({ id }: Props) {
   const update = useUpdateTransaction();
   const remove = useDeleteTransaction();
   const today = toISODate(new Date());
+  const recurringEnabled = useFeature('transactions.recurring');
 
   const { control, handleSubmit, setValue, reset, formState } = useForm<TransactionForm>({
     resolver: zodResolver(transactionFormSchema),
@@ -376,18 +378,30 @@ export function TransactionFormScreen({ id }: Props) {
             name="recurrence"
             render={({ field }) => (
               <View style={{ gap: t.spacing.sm }}>
-                <AppText variant="caption" color="inkMuted" weight="semibold">
-                  Repetir
-                </AppText>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: t.spacing.sm }}>
+                  <AppText variant="caption" color="inkMuted" weight="semibold">
+                    Repetir
+                  </AppText>
+                  {!recurringEnabled ? <ProBadge /> : null}
+                </View>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: t.spacing.sm }}>
-                  {RECURRENCE_OPTIONS.map((o) => (
-                    <Chip
-                      key={o.value}
-                      label={o.label}
-                      selected={field.value === o.value}
-                      onPress={() => field.onChange(o.value)}
-                    />
-                  ))}
+                  {RECURRENCE_OPTIONS.map((o) => {
+                    const locked = !recurringEnabled && o.value !== 'none';
+                    return (
+                      <Chip
+                        key={o.value}
+                        testID={`recurrence-${o.value}`}
+                        label={o.label}
+                        tone={locked ? 'pro' : 'default'}
+                        selected={field.value === o.value}
+                        icon={locked ? <Icon name="lock" size={12} color="inkMuted" /> : undefined}
+                        accessibilityLabel={locked ? `${o.label}, recurso Pro` : o.label}
+                        onPress={() =>
+                          locked ? openPaywall('transactions.recurring') : field.onChange(o.value)
+                        }
+                      />
+                    );
+                  })}
                 </View>
               </View>
             )}

@@ -18,12 +18,14 @@ import {
   IconBadge,
   ListItem,
   MoneyText,
+  ProBadge,
   Screen,
   SectionHeader,
   TextField,
 } from '@/components/ui';
 import { MoneyField } from '@/components/ui/MoneyField';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { openPaywall, useFeature } from '@/entitlements';
 import {
   useAccounts,
   useCreateBill,
@@ -56,13 +58,15 @@ export default function BillsScreen() {
   const pay = usePayBill();
   const remove = useDeleteBill();
   const today = toISODate(new Date());
+  const remindersEnabled = useFeature('bills.reminders');
 
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState('');
   const [amount, setAmount] = useState(0);
   const [due, setDue] = useState(addDays(today, 7));
   const [recurrence, setRecurrence] = useState<Recurrence>('monthly');
-  const [remind, setRemind] = useState(true);
+  const [remindPref, setRemind] = useState(true);
+  const remind = remindersEnabled && remindPref;
   const [error, setError] = useState<string>();
 
   const save = async () => {
@@ -155,11 +159,19 @@ export default function BillsScreen() {
                 justifyContent: 'space-between',
               }}
             >
-              <AppText variant="bodyStrong">Lembrar 1 dia antes</AppText>
+              <View style={{ flex: 1, gap: 2 }}>
+                <AppText variant="bodyStrong">Lembrar 1 dia antes</AppText>
+                {!remindersEnabled ? <ProBadge /> : null}
+              </View>
               <Switch
-                accessibilityLabel="Lembrar 1 dia antes"
+                testID="bill-remind"
+                accessibilityLabel={
+                  remindersEnabled ? 'Lembrar 1 dia antes' : 'Lembrar 1 dia antes, recurso Pro'
+                }
                 value={remind}
-                onValueChange={setRemind}
+                onValueChange={(v) =>
+                  remindersEnabled ? setRemind(v) : openPaywall('bills.reminders')
+                }
                 trackColor={{ true: t.colors.primary, false: t.colors.chipBorder }}
               />
             </View>

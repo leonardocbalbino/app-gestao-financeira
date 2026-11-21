@@ -15,6 +15,7 @@ import {
   TextField,
 } from '@/components/ui';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { FeatureGate } from '@/entitlements';
 import { useCategories, useCreateCategory, useDeleteCategory } from '@/data/hooks';
 
 const ICON_CHOICES = [
@@ -134,7 +135,9 @@ export default function CategoriesScreen() {
           </View>
         </Card>
       ) : (
-        <Button label="Nova categoria" variant="secondary" onPress={() => setAdding(true)} />
+        <FeatureGate feature="categories.custom">
+          <Button label="Nova categoria" variant="secondary" onPress={() => setAdding(true)} />
+        </FeatureGate>
       )}
       <AppText variant="caption" color="inkSubtle" align="center">
         Toque e segure uma categoria personalizada para excluí-la.

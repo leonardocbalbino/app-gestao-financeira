@@ -20,6 +20,7 @@ import { MoneyField } from '@/components/ui/MoneyField';
 import { MonthSwitcher } from '@/components/MonthSwitcher';
 import { useBudgets, useCategories, useDeleteBudget, useUpsertBudget } from '@/data/hooks';
 import { useUI } from '@/state/ui';
+import { isOverLimit, openPaywall, useLimit } from '@/entitlements';
 
 export default function BudgetsScreen() {
   const t = useTheme();
@@ -37,6 +38,9 @@ export default function BudgetsScreen() {
   const totalLimit = list.reduce((s, b) => s + b.limitCents, 0);
   const totalSpent = list.reduce((s, b) => s + b.spentCents, 0);
   const remaining = totalLimit - totalSpent;
+
+  const limitState = useLimit('budgets.max');
+  const openNew = () => (limitState.reached ? openPaywall('budgets.max') : openForm());
 
   const openForm = (catId: string | null = null, current = 0) => {
     setCategoryId(catId);
@@ -125,7 +129,7 @@ export default function BudgetsScreen() {
       <SectionHeader
         title="Por categoria"
         actionLabel={editing ? undefined : 'Adicionar'}
-        onAction={() => openForm()}
+        onAction={openNew}
       />
       {list.length === 0 && !editing ? (
         <Card>
@@ -135,23 +139,32 @@ export default function BudgetsScreen() {
             title="Nenhum orçamento"
             message="Defina limites por categoria para controlar seus gastos do mês."
             actionLabel="Criar orçamento"
-            onAction={() => openForm()}
+            onAction={openNew}
           />
         </Card>
       ) : (
-        list.map((b) => {
+        list.map((b, index) => {
           const over = b.spentCents > b.limitCents;
+          const readOnly = isOverLimit(limitState, index);
           return (
             <Card
               key={b.id}
-              onPress={() => openForm(b.categoryId, b.limitCents)}
-              accessibilityLabel={`${b.categoryName}: gasto ${formatBRL(b.spentCents)} de ${formatBRL(b.limitCents)}. Toque para editar, toque longo para remover`}
+              onPress={() =>
+                readOnly ? openPaywall('budgets.max') : openForm(b.categoryId, b.limitCents)
+              }
+              style={readOnly ? { opacity: 0.55 } : undefined}
+              accessibilityLabel={`${b.categoryName}: gasto ${formatBRL(b.spentCents)} de ${formatBRL(b.limitCents)}. ${readOnly ? 'Somente leitura: acima do limite do plano' : 'Toque para editar, toque longo para remover'}`}
               onLongPress={() => confirmDelete(b.id, b.categoryName)}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: t.spacing.md }}>
                 <IconBadge name={b.categoryIcon} tint={b.categoryColor} />
                 <View style={{ flex: 1 }}>
                   <AppText variant="bodyStrong">{b.categoryName}</AppText>
+                  {readOnly ? (
+                    <AppText variant="micro" color="inkMuted">
+                      SOMENTE LEITURA · LIMITE DO PLANO
+                    </AppText>
+                  ) : null}
                   <AppText variant="caption" color={over ? 'danger' : 'inkMuted'} tabular>
                     {over
                       ? `${formatBRL(b.spentCents - b.limitCents)} acima`

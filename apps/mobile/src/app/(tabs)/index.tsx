@@ -3,6 +3,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 import { formatBRL, formatRelativeDay, greeting, monthKey, percent } from '@app/shared';
 import { buildAlerts } from '@/features/notifications/alerts';
+import { useFeature } from '@/entitlements';
 import { useTheme } from '@/theme/ThemeProvider';
 import {
   AppText,
@@ -28,6 +29,7 @@ import { usePrefs } from '@/state/prefs';
 
 export default function HomeScreen() {
   const t = useTheme();
+  const budgetAlerts = useFeature('budgets.alerts');
   const month = monthKey(new Date());
   const hide = usePrefs((s) => s.hideBalance);
   const toggleHide = usePrefs((s) => s.toggleHideBalance);
@@ -38,8 +40,8 @@ export default function HomeScreen() {
   const openBills = useOpenBills();
   const budgets = useBudgets(month);
   const alerts = useMemo(
-    () => buildAlerts(openBills.data ?? [], budgets.data ?? []),
-    [openBills.data, budgets.data],
+    () => buildAlerts(openBills.data ?? [], budgets.data ?? [], { budgetAlerts }),
+    [openBills.data, budgets.data, budgetAlerts],
   );
   const nextBill = openBills.data?.[0];
 

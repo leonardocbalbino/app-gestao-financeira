@@ -16,7 +16,11 @@ export interface AppAlert {
 const ORDER: Record<AlertSeverity, number> = { critical: 0, warning: 1, info: 2 };
 
 /** Alertas in-app derivados dos dados locais (contas atrasadas/próximas, orçamentos ≥ 80%). */
-export function buildAlerts(bills: BillWithStatus[], budgets: BudgetWithSpending[]): AppAlert[] {
+export function buildAlerts(
+  bills: BillWithStatus[],
+  budgets: BudgetWithSpending[],
+  opts: { budgetAlerts?: boolean } = {},
+): AppAlert[] {
   const out: AppAlert[] = [];
   for (const b of bills) {
     if (b.status === 'overdue') {
@@ -42,7 +46,7 @@ export function buildAlerts(bills: BillWithStatus[], budgets: BudgetWithSpending
       });
     }
   }
-  for (const b of budgets) {
+  for (const b of opts.budgetAlerts === false ? [] : budgets) {
     if (b.ratio >= 1) {
       out.push({
         id: `budget-${b.id}`,
