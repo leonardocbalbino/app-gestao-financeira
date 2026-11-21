@@ -15,6 +15,8 @@ import { useDb } from '@/data/DatabaseProvider';
 import { resetLocalData } from '@/data/reset';
 import { storage } from '@/lib/storage';
 import { useAds } from '@/ads/AdsProvider';
+import { useSyncStatus, requestSync } from '@/sync/SyncManager';
+import { FeatureGate } from '@/entitlements';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'Sistema' },
@@ -41,6 +43,14 @@ export default function SettingsScreen() {
   const { refresh } = useEntitlementsContext();
   const [busy, setBusy] = useState(false);
   const ads = useAds();
+  const sync = useSyncStatus();
+  const syncLabel = sync.syncing
+    ? 'Sincronizando…'
+    : sync.error
+      ? 'Falha na última sincronização — tentaremos de novo'
+      : sync.lastSyncAt
+        ? `Última sincronização: ${new Date(sync.lastSyncAt).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+        : 'Ainda não sincronizado';
   const chevron = <Icon name="chevron-right" color="inkSubtle" />;
   const isFree = ent.planId === 'free';
   const registered = !!user && !user.isAnonymous;
@@ -131,6 +141,35 @@ export default function SettingsScreen() {
           />
         </View>
       </Card>
+
+      <AppText variant="micro" color="inkMuted">
+        BACKUP NA NUVEM
+      </AppText>
+      <FeatureGate feature="sync.cloud">
+        <Card padding={t.spacing.md}>
+          <ListItem
+            title={user ? syncLabel : 'Entre para ativar o backup'}
+            subtitle={
+              sync.rejectedCount
+                ? `${sync.rejectedCount} item(ns) acima do limite do plano não foram enviados`
+                : registered
+                  ? 'Seus dados ficam salvos e disponíveis em outros aparelhos'
+                  : 'Crie uma conta para recuperar seus dados ao trocar de aparelho'
+            }
+            left={<Icon name="repeat" color="primary" />}
+            right={
+              user ? (
+                <AppText variant="caption" color="primary" weight="bold">
+                  Agora
+                </AppText>
+              ) : (
+                chevron
+              )
+            }
+            onPress={() => (user ? requestSync() : router.push('/login'))}
+          />
+        </Card>
+      </FeatureGate>
 
       <AppText variant="micro" color="inkMuted">
         CONTA

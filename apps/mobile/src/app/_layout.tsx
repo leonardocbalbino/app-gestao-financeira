@@ -19,6 +19,7 @@ import { EntitlementsProvider } from '@/entitlements';
 import { AppEffects } from '@/app-effects/AppEffects';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { AdsProvider } from '@/ads/AdsProvider';
+import { SyncManager } from '@/sync/SyncManager';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -76,6 +77,7 @@ export default function RootLayout() {
                 <AdsProvider>
                   <ThemeProvider initialPreference={theme} onPreferenceChange={setTheme}>
                     <AppEffects />
+                    <SyncManager />
                     <RootStack />
                   </ThemeProvider>
                 </AdsProvider>

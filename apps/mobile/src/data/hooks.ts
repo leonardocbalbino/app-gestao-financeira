@@ -8,6 +8,7 @@ import * as budgetsRepo from './repositories/budgets';
 import * as goalsRepo from './repositories/goals';
 import * as billsRepo from './repositories/bills';
 import { cancelReminder, scheduleBillReminder } from '@/lib/notifications';
+import { requestSync } from '@/sync/SyncManager';
 
 /** Todas as queries locais ficam sob a raiz ['db'] — qualquer escrita invalida a árvore. */
 export const dbKeys = {
@@ -95,7 +96,10 @@ function useLocalMutation<TArgs, TResult>(
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: TArgs) => fn(db, args),
-    onSuccess: () => qc.invalidateQueries({ queryKey: dbKeys.all }),
+    onSuccess: () => {
+      requestSync();
+      return qc.invalidateQueries({ queryKey: dbKeys.all });
+    },
   });
 }
 
@@ -188,7 +192,10 @@ export function useCreateBill() {
       }
       return bill;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: dbKeys.all }),
+    onSuccess: () => {
+      requestSync();
+      return qc.invalidateQueries({ queryKey: dbKeys.all });
+    },
   });
 }
 
@@ -206,7 +213,10 @@ export function usePayBill() {
       }
       return res;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: dbKeys.all }),
+    onSuccess: () => {
+      requestSync();
+      return qc.invalidateQueries({ queryKey: dbKeys.all });
+    },
   });
 }
 
@@ -219,6 +229,9 @@ export function useDeleteBill() {
       billsRepo.deleteBill(db, id);
       await cancelReminder(bill?.notificationId).catch(() => undefined);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: dbKeys.all }),
+    onSuccess: () => {
+      requestSync();
+      return qc.invalidateQueries({ queryKey: dbKeys.all });
+    },
   });
 }
