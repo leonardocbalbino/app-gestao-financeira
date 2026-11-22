@@ -129,3 +129,18 @@ jest.mock('expo-secure-store', () => {
 jest.mock('expo-auth-session/providers/google', () => ({
   useIdTokenAuthRequest: () => [null, null, jest.fn()],
 }));
+
+// O runtime "winter" do Expo instala alguns globais com require preguiçoso. Se forem acessados
+// pela primeira vez fora do escopo do teste (Node 22/24 + sql.js), o Jest falha. Força o carregamento aqui.
+for (const key of [
+  'TextDecoderStream',
+  'TextEncoderStream',
+  'URL',
+  'URLSearchParams',
+  'DOMException',
+  'structuredClone',
+  '__ExpoImportMetaRegistry',
+  'fetch',
+]) {
+  void (globalThis as Record<string, unknown>)[key];
+}
