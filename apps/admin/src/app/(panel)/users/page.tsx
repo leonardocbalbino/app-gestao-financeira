@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { requireAdmin } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { apiFetch } from '@/lib/api';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -45,13 +45,17 @@ export default async function UsersPage({
   await requireAdmin('viewer');
   const { q = '', page = '0' } = await searchParams;
   const p = Math.max(0, Number(page) || 0);
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc('admin_search_users', {
-    p_query: q,
-    p_limit: PAGE,
-    p_offset: p * PAGE,
-  });
-  const rows = (data ?? []) as UserRow[];
+  let data: UserRow[] = [];
+  let error: Error | null = null;
+  try {
+    data = await apiFetch<UserRow[]>(
+      'GET',
+      `/admin/users?q=${encodeURIComponent(q)}&limit=${PAGE}&offset=${p * PAGE}`,
+    );
+  } catch (e) {
+    error = e as Error;
+  }
+  const rows = data;
 
   return (
     <>

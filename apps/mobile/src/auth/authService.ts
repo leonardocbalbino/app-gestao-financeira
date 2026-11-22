@@ -1,66 +1,56 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
-import * as Linking from 'expo-linking';
-import * as WebBrowser from 'expo-web-browser';
-import { supabase } from '@/lib/supabase';
+import {
+  api,
+  clearSession,
+  getRefreshToken,
+  getSessionUser,
+  isApiConfigured,
+  restoreSession,
+  saveSession,
+  type SessionUser,
+} from '@/lib/api';
 
-WebBrowser.maybeCompleteAuthSession();
-
-export class AuthUnavailableError extends Error {
-  constructor() {
-    super('Login indisponível: configure o Supabase (EXPO_PUBLIC_SUPABASE_URL/ANON_KEY).');
-  }
+interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: SessionUser;
 }
 
-function client() {
-  if (!supabase) throw new AuthUnavailableError();
-  return supabase;
+let ensuring: Promise<void> | null = null;
+
+/** Primeiro uso: sessão anônima (compras e entitlements vinculados sem cadastro). Deduplicada. */
+export function ensureAnonymousSession(): Promise<void> {
+  ensuring ??= (async () => {
+    if (!isApiConfigured()) return;
+    await restoreSession();
+    if (getSessionUser()) return;
+    await saveSession(await api<AuthResponse>('POST', '/auth/anonymous', { auth: false }));
+  })().finally(() => {
+    ensuring = null;
+  });
+  return ensuring;
 }
 
-async function isAnonymousSession(): Promise<boolean> {
-  const { data } = await client().auth.getSession();
-  return !!data.session?.user.is_anonymous;
-}
-
-/** Primeiro uso: sessão anônima (permite RevenueCat/entitlements sem cadastro). */
-export async function ensureAnonymousSession(): Promise<void> {
-  if (!supabase) return;
-  const { data } = await supabase.auth.getSession();
-  if (data.session) return;
-  const { error } = await supabase.auth.signInAnonymously();
-  if (error) throw error;
-}
-
-export type EmailFlow = 'link_anonymous' | 'sign_in';
+export type EmailFlow = 'link' | 'sign_in';
 
 /**
- * Envia código por e-mail. Se a sessão atual é anônima, tenta vincular o e-mail ao mesmo
- * usuário (mantém dados e assinatura). Se o e-mail já tem conta, faz login normal.
+ * Envia o código por e-mail. Se a sessão atual é anônima e o e-mail é novo, a API vincula o
+ * e-mail ao MESMO usuário (mantém dados e assinatura). Se o e-mail já tem conta, entra nela.
  */
 export async function sendEmailCode(email: string): Promise<EmailFlow> {
-  const sb = client();
-  if (await isAnonymousSession()) {
-    const { error } = await sb.auth.updateUser({ email });
-    if (!error) return 'link_anonymous';
-    if (!/already|exists|registered/i.test(error.message)) throw error;
-  }
-  const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-  if (error) throw error;
-  return 'sign_in';
+  const r = await api<{ flow: EmailFlow }>('POST', '/auth/email/start', { body: { email } });
+  return r.flow;
 }
 
-export async function verifyEmailCode(email: string, token: string, flow: EmailFlow) {
-  const { error } = await client().auth.verifyOtp({
-    email,
-    token,
-    type: flow === 'link_anonymous' ? 'email_change' : 'email',
-  });
-  if (error) throw error;
+export async function verifyEmailCode(email: string, code: string): Promise<void> {
+  await saveSession(
+    await api<AuthResponse>('POST', '/auth/email/verify', { body: { email, code } }),
+  );
 }
 
-/** Sign in with Apple nativo (iOS) com nonce SHA-256. */
+/** Sign in with Apple nativo: a Apple recebe o SHA-256 do nonce; a API recebe o nonce cru. */
 export async function signInWithApple(): Promise<'ok' | 'cancelled'> {
-  const sb = client();
   const rawNonce = Crypto.randomUUID();
   const hashed = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, rawNonce);
   try {
@@ -71,14 +61,12 @@ export async function signInWithApple(): Promise<'ok' | 'cancelled'> {
       ],
       nonce: hashed,
     });
-    if (!cred.identityToken) throw new Error('Apple não retornou o token.');
-    const creds = { provider: 'apple' as const, token: cred.identityToken, nonce: rawNonce };
-    if (await isAnonymousSession()) {
-      const linked = await sb.auth.linkIdentity(creds);
-      if (!linked.error) return 'ok';
-    }
-    const { error } = await sb.auth.signInWithIdToken(creds);
-    if (error) throw error;
+    if (!cred.identityToken) throw new Error('A Apple não retornou o token.');
+    await saveSession(
+      await api<AuthResponse>('POST', '/auth/apple', {
+        body: { identityToken: cred.identityToken, nonce: rawNonce },
+      }),
+    );
     return 'ok';
   } catch (e) {
     if ((e as { code?: string }).code === 'ERR_REQUEST_CANCELED') return 'cancelled';
@@ -86,39 +74,22 @@ export async function signInWithApple(): Promise<'ok' | 'cancelled'> {
   }
 }
 
-/** Google via OAuth (PKCE) no navegador do sistema. */
-export async function signInWithGoogle(): Promise<'ok' | 'cancelled'> {
-  const sb = client();
-  const redirectTo = Linking.createURL('auth-callback');
-  const options = { redirectTo, skipBrowserRedirect: true };
-  const anon = await isAnonymousSession();
-  let res = anon
-    ? await sb.auth.linkIdentity({ provider: 'google', options })
-    : await sb.auth.signInWithOAuth({ provider: 'google', options });
-  if (res.error && anon) res = await sb.auth.signInWithOAuth({ provider: 'google', options });
-  if (res.error || !res.data.url) throw res.error ?? new Error('URL de login ausente.');
-
-  const result = await WebBrowser.openAuthSessionAsync(res.data.url, redirectTo);
-  if (result.type !== 'success') return 'cancelled';
-  const url = new URL(result.url);
-  const code = url.searchParams.get('code');
-  const errDesc = url.searchParams.get('error_description');
-  if (errDesc) throw new Error(errDesc);
-  if (!code) throw new Error('Código de autorização ausente.');
-  const { error } = await sb.auth.exchangeCodeForSession(code);
-  if (error) throw error;
-  return 'ok';
+/** Google: o id_token vem do expo-auth-session (tela de login) e é validado pela API. */
+export async function signInWithGoogleIdToken(idToken: string): Promise<void> {
+  await saveSession(await api<AuthResponse>('POST', '/auth/google', { body: { idToken } }));
 }
 
 export async function signOut(): Promise<void> {
-  if (!supabase) return;
-  await supabase.auth.signOut();
+  const refreshToken = await getRefreshToken();
+  if (refreshToken) {
+    await api('POST', '/auth/logout', { body: { refreshToken }, auth: false }).catch(
+      () => undefined,
+    );
+  }
+  await clearSession();
 }
 
-/** Chama a Edge Function delete-account (apaga usuário e dados no servidor). */
+/** Apaga a conta e todos os dados no servidor. */
 export async function deleteAccountOnServer(): Promise<void> {
-  const { error } = await client().functions.invoke('delete-account', {
-    body: { confirm: 'EXCLUIR' },
-  });
-  if (error) throw error;
+  await api('DELETE', '/me', { body: { confirm: 'EXCLUIR' } });
 }

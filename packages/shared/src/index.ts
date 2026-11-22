@@ -6,3 +6,4 @@ export * from './features';
 export * from './entitlements';
 export * from './schemas';
 export * from './categories';
+export * from './reminders';

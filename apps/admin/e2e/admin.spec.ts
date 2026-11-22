@@ -59,3 +59,13 @@ test('owner: dashboard, matriz com diff e publicação, concessão de Pro', asyn
   await page.getByRole('link', { name: 'Auditoria' }).click();
   await expect(page.getByRole('cell', { name: /manual_grants/ }).first()).toBeVisible();
 });
+
+test('lembretes e envios: status dos canais e teste de e-mail', async ({ page }) => {
+  await login(page, ADMIN.email, ADMIN.password);
+  await page.getByRole('link', { name: 'Lembretes e envios' }).click();
+  await expect(page.getByRole('heading', { name: 'Lembretes e envios' })).toBeVisible();
+  await expect(page.getByText('WhatsApp', { exact: true }).first()).toBeVisible();
+  await page.getByLabel('Destino').fill('teste-canal@exemplo.dev');
+  await page.getByRole('button', { name: 'Enviar teste' }).click();
+  await expect(page.getByText('Enviado via smtp')).toBeVisible();
+});

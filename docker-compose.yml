@@ -1,0 +1,28 @@
+# Ambiente local: Postgres 17 (banco do app) + Mailpit (captura e-mails enviados em dev).
+# Portas fora das faixas reservadas pelo Windows (Hyper-V).
+services:
+  db:
+    build: ./db/docker
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gestao
+    ports:
+      - '56432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/tests:/tests:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d gestao']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - '56025:8025' # interface web: http://localhost:56025
+      - '56026:1025' # SMTP
+
+volumes:
+  pgdata:

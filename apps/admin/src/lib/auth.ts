@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { apiFetch } from '@/lib/api';
 import { roleAtLeast, type AdminRole } from '@/lib/roles';
 
 export interface AdminSession {
@@ -10,19 +10,13 @@ export interface AdminSession {
   role: AdminRole;
 }
 
-/** Camada de acesso: lê a sessão e o papel uma vez por request. */
+/** Sessão + papel do admin (uma consulta por request). */
 export const getAdminSession = cache(async (): Promise<AdminSession | null> => {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) return null;
-  // RLS de admins só devolve linhas para quem é admin.
-  const { data: row } = await supabase
-    .from('admins')
-    .select('role')
-    .eq('user_id', data.user.id)
-    .maybeSingle();
-  if (!row) return null;
-  return { userId: data.user.id, email: data.user.email ?? null, role: row.role as AdminRole };
+  try {
+    return await apiFetch<AdminSession>('GET', '/admin/session');
+  } catch {
+    return null;
+  }
 });
 
 /** Exige papel mínimo; redireciona para o login caso contrário. */

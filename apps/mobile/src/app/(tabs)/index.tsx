@@ -228,6 +228,23 @@ export default function HomeScreen() {
         </>
       ) : null}
 
+      <Card
+        onPress={() => router.push('/reminders')}
+        accessibilityLabel="Lembretes de pagamento e cobrança"
+        testID="home-reminders"
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: t.spacing.md }}>
+          <IconBadge name="bell" />
+          <View style={{ flex: 1 }}>
+            <AppText variant="bodyStrong">Lembretes de pagamento e cobrança</AppText>
+            <AppText variant="caption" color="inkMuted">
+              Avisos por notificação, e-mail, SMS e WhatsApp
+            </AppText>
+          </View>
+          <Icon name="chevron-right" color="inkSubtle" />
+        </View>
+      </Card>
+
       <BannerSlot placement="banner_home" />
 
       <SectionHeader

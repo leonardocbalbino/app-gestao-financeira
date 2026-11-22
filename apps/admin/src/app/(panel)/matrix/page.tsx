@@ -1,6 +1,6 @@
 import { requireAdmin } from '@/lib/auth';
 import { roleAtLeast } from '@/lib/roles';
-import { createClient } from '@/lib/supabase/server';
+import { apiFetch } from '@/lib/api';
 import { PageHeader, ReadOnlyNotice } from '@/components/page-header';
 import type { DiffRow } from '@/lib/matrix';
 import { MatrixEditor, type MatrixFeature, type MatrixPlan } from './matrix-editor';
@@ -10,19 +10,18 @@ export const metadata = { title: 'Funcionalidades' };
 export default async function MatrixPage() {
   const session = await requireAdmin('viewer');
   const canEdit = roleAtLeast(session.role, 'editor');
-  const supabase = await createClient();
-  const [plans, features, draft, diff] = await Promise.all([
-    supabase.from('plans').select('id, name, is_default, active').order('sort_order'),
-    supabase
-      .from('features')
-      .select('key, type, label, group_name, paywall_visible')
-      .order('sort_order'),
-    supabase.from('plan_features_draft').select('plan_id, feature_key, value'),
-    supabase.rpc('plan_matrix_diff'),
-  ]);
+  const m = await apiFetch<{
+    plans: MatrixPlan[];
+    features: MatrixFeature[];
+    draft: { plan_id: string; feature_key: string; value: unknown }[];
+    diff: DiffRow[];
+  }>('GET', '/admin/matrix');
+  const plans = { data: m.plans };
+  const features = { data: m.features };
+  const diff = { data: m.diff };
 
   const values: Record<string, unknown> = {};
-  for (const r of draft.data ?? []) values[`${r.plan_id}|${r.feature_key}`] = r.value;
+  for (const r of m.draft) values[`${r.plan_id}|${r.feature_key}`] = r.value;
 
   return (
     <>

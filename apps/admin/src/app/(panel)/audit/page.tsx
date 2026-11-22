@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { requireAdmin } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { apiFetch } from '@/lib/api';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,19 +48,23 @@ export default async function AuditPage({
   await requireAdmin('viewer');
   const { entity = '', page = '0' } = await searchParams;
   const p = Math.max(0, Number(page) || 0);
-  const supabase = await createClient();
-  let q = supabase
-    .from('admin_audit_log')
-    .select('id, actor_id, action, entity, entity_id, before, after, created_at')
-    .order('created_at', { ascending: false })
-    .range(p * PAGE, p * PAGE + PAGE - 1);
-  if (ENTITIES.includes(entity)) q = q.eq('entity', entity);
-  const [{ data: rows }, { data: admins }] = await Promise.all([
-    q,
-    supabase.rpc('admin_list_admins'),
-  ]);
+  const qs = new URLSearchParams({ page: String(p), limit: String(PAGE) });
+  if (ENTITIES.includes(entity)) qs.set('entity', entity);
+  const rows = await apiFetch<
+    {
+      id: number;
+      actor_id: string | null;
+      actor_email: string | null;
+      action: string;
+      entity: string;
+      entity_id: string | null;
+      before: Record<string, unknown> | null;
+      after: Record<string, unknown> | null;
+      created_at: string;
+    }[]
+  >('GET', `/admin/audit?${qs.toString()}`);
   const who = new Map<string, string>(
-    (admins ?? []).map((a: { user_id: string; email: string }) => [a.user_id, a.email]),
+    rows.filter((r) => r.actor_id && r.actor_email).map((r) => [r.actor_id!, r.actor_email!]),
   );
 
   return (
@@ -102,7 +106,7 @@ export default async function AuditPage({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {(rows ?? []).map((r) => {
+            {rows.map((r) => {
               const keys = changedKeys(r.before, r.after);
               return (
                 <TableRow key={r.id}>
@@ -152,7 +156,7 @@ export default async function AuditPage({
             <Button variant="outline">Anterior</Button>
           </Link>
         ) : null}
-        {(rows ?? []).length === PAGE ? (
+        {rows.length === PAGE ? (
           <Link href={`/audit?entity=${entity}&page=${p + 1}`}>
             <Button variant="outline">Próxima</Button>
           </Link>

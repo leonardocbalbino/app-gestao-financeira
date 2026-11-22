@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { requireAdmin } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { apiFetch } from '@/lib/api';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SignupsChart } from '@/components/signups-chart';
@@ -39,15 +39,23 @@ function Stat({ label, value, hint }: { label: string; value: number; hint?: str
 
 export default async function DashboardPage() {
   await requireAdmin('viewer');
-  const supabase = await createClient();
-  const [{ data: stats, error }, { data: audit }] = await Promise.all([
-    supabase.rpc('admin_stats'),
-    supabase
-      .from('admin_audit_log')
-      .select('id, action, entity, entity_id, created_at')
-      .order('created_at', { ascending: false })
-      .limit(8),
-  ]);
+  let stats: Stats | null = null;
+  let audit: {
+    id: number;
+    action: string;
+    entity: string;
+    entity_id: string | null;
+    created_at: string;
+  }[] = [];
+  let error: Error | null = null;
+  try {
+    [stats, audit] = await Promise.all([
+      apiFetch<Stats>('GET', '/admin/stats'),
+      apiFetch<typeof audit>('GET', '/admin/audit?limit=8'),
+    ]);
+  } catch (e) {
+    error = e as Error;
+  }
   if (error || !stats) {
     return (
       <p className="text-destructive">Não foi possível carregar os indicadores: {error?.message}</p>
@@ -131,7 +139,7 @@ export default async function DashboardPage() {
         </CardHeader>
         <CardContent>
           <ul className="divide-y divide-border text-sm">
-            {(audit ?? []).map((a) => (
+            {audit.map((a) => (
               <li key={a.id} className="flex justify-between gap-4 py-2">
                 <span>
                   <span className="font-semibold">{a.action}</span> · {a.entity}

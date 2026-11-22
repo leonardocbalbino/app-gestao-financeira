@@ -2,7 +2,13 @@
 
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/server';
+import {
+  apiFetch,
+  apiPublic,
+  clearSessionCookies,
+  setSessionCookies,
+  type Tokens,
+} from '@/lib/api';
 
 const schema = z.object({
   email: z.string().email('E-mail inválido'),
@@ -20,24 +26,27 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
-  if (error || !data.user) return { error: 'E-mail ou senha incorretos.' };
-
-  const { data: admin } = await supabase
-    .from('admins')
-    .select('role')
-    .eq('user_id', data.user.id)
-    .maybeSingle();
-  if (!admin) {
-    await supabase.auth.signOut();
+  let tokens: Tokens;
+  try {
+    tokens = await apiPublic<Tokens>('POST', '/auth/password', parsed.data);
+  } catch {
+    return { error: 'E-mail ou senha incorretos.' };
+  }
+  await setSessionCookies(tokens);
+  try {
+    await apiFetch('GET', '/admin/session');
+  } catch {
+    await clearSessionCookies();
     return { error: 'Esta conta não tem acesso ao painel.' };
   }
   redirect('/');
 }
 
 export async function logout() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  const { cookies } = await import('next/headers');
+  const refreshToken = (await cookies()).get('adm_rt')?.value;
+  if (refreshToken)
+    await apiPublic('POST', '/auth/logout', { refreshToken }).catch(() => undefined);
+  await clearSessionCookies();
   redirect('/login');
 }

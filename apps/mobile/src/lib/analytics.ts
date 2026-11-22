@@ -17,6 +17,7 @@ export type AnalyticsEvent =
   | 'budget_saved'
   | 'goal_created'
   | 'bill_created'
+  | 'reminder_created'
   | 'export_pdf'
   | 'export_csv'
   | 'limit_reached'

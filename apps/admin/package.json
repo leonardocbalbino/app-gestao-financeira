@@ -13,8 +13,6 @@
   "dependencies": {
     "@app/shared": "workspace:*",
     "@base-ui/react": "^1.9.0",
-    "@supabase/ssr": "^0.12.7",
-    "@supabase/supabase-js": "^2.119.2",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "lucide-react": "^1.77.0",
@@ -32,8 +30,10 @@
     "@playwright/test": "^1.65.1",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/node": "^22",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "pg": "^8.23.1",
     "tailwindcss": "4.3.3",
     "typescript": "~6.0.3",
     "vitest": "^5.1.1"

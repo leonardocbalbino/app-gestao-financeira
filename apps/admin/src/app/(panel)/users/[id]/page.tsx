@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { FEATURE_CATALOG } from '@app/shared';
 import { requireAdmin } from '@/lib/auth';
 import { roleAtLeast } from '@/lib/roles';
-import { createClient } from '@/lib/supabase/server';
+import { apiFetch } from '@/lib/api';
 import { formatCell } from '@/lib/matrix';
 import { PageHeader } from '@/components/page-header';
 import { ActionForm } from '@/components/action-form';
@@ -57,13 +57,18 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
   const session = await requireAdmin('viewer');
   const canEdit = roleAtLeast(session.role, 'editor');
   const { id } = await params;
-  const supabase = await createClient();
-  const [{ data, error }, { data: plans }] = await Promise.all([
-    supabase.rpc('admin_user_detail', { p_user: id }),
-    supabase.from('plans').select('id, name').eq('is_default', false).order('sort_order'),
-  ]);
-  if (error) return <p className="text-destructive">{error.message}</p>;
-  const d = data as Detail;
+  let d: Detail;
+  let allPlans: { id: string; name: string; is_default: boolean }[];
+  try {
+    [d, allPlans] = await Promise.all([
+      apiFetch<Detail>('GET', `/admin/users/${encodeURIComponent(id)}`),
+      apiFetch<{ id: string; name: string; is_default: boolean }[]>('GET', '/admin/plans'),
+    ]);
+  } catch (e) {
+    if ((e as { status?: number }).status === 404) notFound();
+    return <p className="text-destructive">{(e as Error).message}</p>;
+  }
+  const plans = allPlans.filter((p) => !p.is_default);
   if (!d?.user) notFound();
   const e = d.entitlements;
 

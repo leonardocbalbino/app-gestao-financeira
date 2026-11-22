@@ -121,19 +121,21 @@ export function addMonthsToDate(iso: ISODate, delta: number): ISODate {
   return toISODate(target);
 }
 
-/** Próxima ocorrência conforme recorrência. */
+/**
+ * Próxima ocorrência. Mensal/anual usam o dia âncora (dia original do vencimento) para não
+ * desviar: 31 jan → 28 fev → 31 mar. Sem âncora, usa o dia da data informada.
+ */
 export function nextOccurrence(
   iso: ISODate,
   recurrence: 'none' | 'weekly' | 'monthly' | 'yearly',
+  anchorDay?: number | null,
 ): ISODate | null {
-  switch (recurrence) {
-    case 'weekly':
-      return addDays(iso, 7);
-    case 'monthly':
-      return addMonthsToDate(iso, 1);
-    case 'yearly':
-      return addMonthsToDate(iso, 12);
-    default:
-      return null;
-  }
+  if (recurrence === 'none') return null;
+  if (recurrence === 'weekly') return addDays(iso, 7);
+  const months = recurrence === 'monthly' ? 1 : 12;
+  const [y = 1970, m = 1] = iso.split('-').map(Number);
+  const target = new Date(y, m - 1 + months, 1);
+  const last = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  const day = Math.min(anchorDay ?? Number(iso.slice(8, 10)), last);
+  return toISODate(new Date(target.getFullYear(), target.getMonth(), day));
 }

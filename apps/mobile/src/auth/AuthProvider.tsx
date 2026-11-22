@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { Session } from '@supabase/supabase-js';
 import { entitlementsFromPlan } from '@app/shared';
-import { supabase } from '@/lib/supabase';
+import { api, isApiConfigured, onSessionChange, restoreSession, type SessionUser } from '@/lib/api';
 import { billing, setBillingService } from '@/billing';
 import { createRevenueCatBilling } from '@/billing/revenueCatBilling';
 import { env } from '@/lib/env';
@@ -20,49 +19,71 @@ interface AuthContextValue {
   user: AuthUser | null;
   /** false até a sessão inicial ser lida do armazenamento. */
   ready: boolean;
-  /** Supabase configurado? Sem ele o app funciona 100% local. */
+  /** API configurada? Sem ela o app funciona 100% local. */
   online: boolean;
 }
 
 const AuthContext = createContext<AuthContextValue>({ user: null, ready: true, online: false });
 
-function toUser(s: Session | null): AuthUser | null {
-  if (!s) return null;
-  return {
-    id: s.user.id,
-    email: s.user.email ?? null,
-    isAnonymous: !!s.user.is_anonymous,
-    provider: (s.user.app_metadata?.provider as string | undefined) ?? null,
-  };
+interface MeResponse {
+  email: string | null;
+  is_anonymous: boolean;
+  has_apple: boolean;
+  has_google: boolean;
 }
+
+const toUser = (s: SessionUser | null): AuthUser | null =>
+  s ? { id: s.id, email: null, isAnonymous: s.isAnonymous, provider: null } : null;
 
 // RevenueCat só quando há chave para a plataforma (senão fica o noop).
 if (env.revenueCatIosKey || env.revenueCatAndroidKey) setBillingService(createRevenueCatBilling());
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [ready, setReady] = useState(!supabase);
+  const [ready, setReady] = useState(!isApiConfigured());
   const [billingReady, setBillingReady] = useState(false);
   const { refresh, apply, matrix } = useEntitlementsContext();
 
   useEffect(() => {
-    if (!supabase) return;
+    if (!isApiConfigured()) return;
     let mounted = true;
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return;
-      setUser(toUser(data.session));
-      setReady(true);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(toUser(session));
-    });
+    const off = onSessionChange((s) => mounted && setUser(toUser(s)));
+    void restoreSession().then(() => mounted && setReady(true));
     return () => {
       mounted = false;
-      sub.subscription.unsubscribe();
+      off();
     };
   }, []);
 
-  // Vincula compras ao usuário do Supabase e recarrega entitlements quando o usuário muda.
+  // Detalhes do perfil (e-mail e provedores) para a tela de Configurações.
+  const sessionId = user?.id ?? null;
+  const sessionAnon = user?.isAnonymous ?? true;
+  useEffect(() => {
+    if (!sessionId) return;
+    let alive = true;
+    api<MeResponse>('GET', '/me')
+      .then((me) => {
+        if (!alive) return;
+        const provider = me.has_apple
+          ? 'Apple'
+          : me.has_google
+            ? 'Google'
+            : me.email
+              ? 'e-mail'
+              : null;
+        setUser((u) =>
+          u && u.id === sessionId
+            ? { ...u, email: me.email, isAnonymous: me.is_anonymous, provider }
+            : u,
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [sessionId, sessionAnon]);
+
+  // Vincula compras ao usuário da API e recarrega entitlements quando o usuário muda.
   const userId = user?.id ?? null;
   useEffect(() => {
     if (userId) analytics.identify(userId);
@@ -86,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, [apply, refresh, matrix, billingReady]);
 
-  const value = useMemo(() => ({ user, ready, online: !!supabase }), [user, ready]);
+  const value = useMemo(() => ({ user, ready, online: isApiConfigured() }), [user, ready]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

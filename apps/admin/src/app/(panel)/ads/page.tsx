@@ -1,7 +1,7 @@
 import { adConfigSchema, adPlacementSchema, type AdPlacement } from '@app/shared';
 import { requireAdmin } from '@/lib/auth';
 import { roleAtLeast } from '@/lib/roles';
-import { createClient } from '@/lib/supabase/server';
+import { apiFetch } from '@/lib/api';
 import { PageHeader, ReadOnlyNotice } from '@/components/page-header';
 import { ActionForm } from '@/components/action-form';
 import { Button } from '@/components/ui/button';
@@ -48,12 +48,11 @@ function Check({
 export default async function AdsPage() {
   const session = await requireAdmin('viewer');
   const canEdit = roleAtLeast(session.role, 'editor');
-  const supabase = await createClient();
-  const { data: row } = await supabase
-    .from('ad_config')
-    .select('data, updated_at')
-    .eq('id', 1)
-    .single();
+  const res = await apiFetch<{ data: unknown; updatedAt: string | null }>(
+    'GET',
+    '/admin/ad-config',
+  );
+  const row = { data: res.data, updated_at: res.updatedAt };
   const cfg = adConfigSchema.parse(row?.data ?? {});
   const placements = adPlacementSchema.options;
 

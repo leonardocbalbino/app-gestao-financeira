@@ -14,6 +14,8 @@ test('capturas', async ({ page }) => {
   await page.goto('/matrix');
   await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/matrix.png`, fullPage: true });
   await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/deliveries');
+  await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/deliveries.png`, fullPage: true });
   await page.goto('/users');
   await page.screenshot({ path: `${process.env.SCREENSHOT_DIR}/users-dark.png` });
 });

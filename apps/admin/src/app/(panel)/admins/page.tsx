@@ -1,7 +1,7 @@
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/auth';
 import { ROLE_LABEL, type AdminRole } from '@/lib/roles';
-import { createClient } from '@/lib/supabase/server';
+import { apiFetch } from '@/lib/api';
 import { friendlyError, type ActionResult } from '@/lib/action';
 import { PageHeader } from '@/components/page-header';
 import { ActionForm } from '@/components/action-form';
@@ -15,21 +15,24 @@ export const metadata = { title: 'Administradores' };
 async function setRole(fd: FormData): Promise<ActionResult> {
   'use server';
   await requireAdmin('owner');
-  const supabase = await createClient();
   const role = String(fd.get('role') ?? '');
-  const { error } = await supabase.rpc('admin_set_role', {
-    p_email: String(fd.get('email') ?? ''),
-    p_role: role,
-  });
-  if (error) return { ok: false, error: friendlyError(error) };
+  const password = String(fd.get('password') ?? '').trim();
+  try {
+    await apiFetch('PUT', '/admin/admins', {
+      email: String(fd.get('email') ?? ''),
+      role,
+      ...(password ? { password } : {}),
+    });
+  } catch (error) {
+    return { ok: false, error: friendlyError(error) };
+  }
   revalidatePath('/admins');
   return { ok: true, message: role ? 'Papel atualizado' : 'Acesso removido' };
 }
 
 export default async function AdminsPage() {
   const session = await requireAdmin('owner');
-  const supabase = await createClient();
-  const { data } = await supabase.rpc('admin_list_admins');
+  const data = await apiFetch<unknown[]>('GET', '/admin/admins');
   const admins = (data ?? []) as {
     user_id: string;
     email: string;
@@ -41,7 +44,7 @@ export default async function AdminsPage() {
     <>
       <PageHeader
         title="Administradores"
-        description="O usuário precisa ter uma conta (criada no Supabase Auth) antes de receber acesso."
+        description="Informe uma senha para criar a conta de acesso ao painel (ou redefinir a senha de um administrador)."
       />
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="rounded-[20px]">
@@ -85,6 +88,17 @@ export default async function AdminsPage() {
               <div className="space-y-1.5">
                 <Label htmlFor="email">E-mail</Label>
                 <Input id="email" name="email" type="email" required />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Senha (para criar a conta ou redefinir)</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  minLength={10}
+                  autoComplete="new-password"
+                  placeholder="opcional, 10+ caracteres"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="role">Papel</Label>

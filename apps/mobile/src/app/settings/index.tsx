@@ -234,6 +234,28 @@ export default function SettingsScreen() {
           onPress={() => router.push('/goals')}
         />
         <ListItem
+          title="Lembretes de pagamento e cobrança"
+          subtitle="Push, e-mail, SMS e WhatsApp"
+          left={<Icon name="bell" color="primary" />}
+          right={chevron}
+          divider
+          onPress={() => router.push('/reminders')}
+        />
+        <ListItem
+          title="Canais de contato"
+          left={<Icon name="smartphone" color="primary" />}
+          right={chevron}
+          divider
+          onPress={() => router.push('/settings/contact')}
+        />
+        <ListItem
+          title="Família"
+          left={<Icon name="users" color="primary" />}
+          right={chevron}
+          divider
+          onPress={() => router.push('/settings/family')}
+        />
+        <ListItem
           title="Contas a pagar"
           left={<Icon name="calendar-clock" color="primary" />}
           right={chevron}

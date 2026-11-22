@@ -88,6 +88,7 @@ export const bills = sqliteTable('bills', {
   paidAt: text('paid_at'),
   remindDaysBefore: integer('remind_days_before').notNull().default(1),
   notificationId: text('notification_id'),
+  anchorDay: integer('anchor_day'),
 });
 
 export const schema = { accounts, categories, transactions, budgets, goals, bills };

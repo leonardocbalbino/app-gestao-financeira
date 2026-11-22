@@ -1,6 +1,6 @@
 import { requireAdmin } from '@/lib/auth';
 import { roleAtLeast } from '@/lib/roles';
-import { createClient } from '@/lib/supabase/server';
+import { apiFetch } from '@/lib/api';
 import { PageHeader, ReadOnlyNotice } from '@/components/page-header';
 import { ActionForm } from '@/components/action-form';
 import { Badge } from '@/components/ui/badge';
@@ -93,8 +93,7 @@ function PlanFields({ plan, disabled }: { plan?: Plan; disabled: boolean }) {
 export default async function PlansPage() {
   const session = await requireAdmin('viewer');
   const canEdit = roleAtLeast(session.role, 'editor');
-  const supabase = await createClient();
-  const { data: plans } = await supabase.from('plans').select('*').order('sort_order');
+  const plans = await apiFetch<Plan[]>('GET', '/admin/plans');
 
   return (
     <>
@@ -104,7 +103,7 @@ export default async function PlansPage() {
       />
       {!canEdit ? <ReadOnlyNotice /> : null}
       <div className="grid gap-4 xl:grid-cols-2">
-        {(plans as Plan[] | null)?.map((p) => (
+        {plans.map((p) => (
           <Card key={p.id} className="rounded-[20px]">
             <CardHeader className="flex flex-row items-center gap-2">
               <CardTitle>{p.name}</CardTitle>

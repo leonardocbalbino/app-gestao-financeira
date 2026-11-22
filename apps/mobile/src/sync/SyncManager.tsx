@@ -6,10 +6,10 @@ import type { SyncTable } from '@/data/schema';
 import { useDb } from '@/data/DatabaseProvider';
 import { useFeature } from '@/entitlements';
 import { useAuth } from '@/auth/AuthProvider';
-import { supabase } from '@/lib/supabase';
+import { isApiConfigured } from '@/lib/api';
 import { storage } from '@/lib/storage';
 import { syncOnce, type CursorStore } from './engine';
-import { createSupabaseRemote } from './supabaseRemote';
+import { createApiRemote } from './apiRemote';
 import { useAppStatus } from '@/features/app-status/RemoteConfigGate';
 
 export interface SyncStatus {
@@ -57,8 +57,8 @@ export function SyncManager() {
   const userId = user?.id ?? null;
 
   useEffect(() => {
-    if (!enabled || !userId || !supabase || maintenance) return;
-    const remote = createSupabaseRemote(supabase);
+    if (!enabled || !userId || !isApiConfigured() || maintenance) return;
+    const remote = createApiRemote();
     const cursors = cursorStore(userId);
     let debounce: ReturnType<typeof setTimeout> | null = null;
 

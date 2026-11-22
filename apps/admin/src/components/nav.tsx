@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
   ScrollText,
   ShieldCheck,
+  BellRing,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { roleAtLeast, type AdminRole } from '@/lib/roles';
@@ -21,6 +22,7 @@ const ITEMS = [
   { href: '/matrix', label: 'Funcionalidades', icon: Grid3x3, min: 'viewer' },
   { href: '/ads', label: 'Anúncios', icon: Megaphone, min: 'viewer' },
   { href: '/users', label: 'Usuários', icon: Users, min: 'viewer' },
+  { href: '/deliveries', label: 'Lembretes e envios', icon: BellRing, min: 'viewer' },
   { href: '/config', label: 'Config remota', icon: SlidersHorizontal, min: 'viewer' },
   { href: '/audit', label: 'Auditoria', icon: ScrollText, min: 'viewer' },
   { href: '/admins', label: 'Administradores', icon: ShieldCheck, min: 'owner' },

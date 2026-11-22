@@ -67,6 +67,7 @@ export function createBill(db: AppDB, input: BillInput): BillRow {
     name: input.name.trim(),
     paidAt: null,
     notificationId: null,
+    anchorDay: Number(input.dueDate.slice(8, 10)),
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
@@ -118,7 +119,11 @@ export function payBill(
         recurrence: 'none',
       });
     }
-    const nextDue = nextOccurrence(bill.dueDate, bill.recurrence);
+    const nextDue = nextOccurrence(
+      bill.dueDate,
+      bill.recurrence,
+      bill.anchorDay ?? Number(bill.dueDate.slice(8, 10)),
+    );
     if (nextDue) {
       next = {
         ...bill,

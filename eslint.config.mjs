@@ -15,7 +15,7 @@ export default tseslint.config(
       '**/babel.config.js',
       '**/metro.config.js',
       'apps/admin/next-env.d.ts',
-      'supabase/functions/**',
+      'apps/api/test/**/*.js',
     ],
   },
   js.configs.recommended,
@@ -38,6 +38,12 @@ export default tseslint.config(
   {
     files: ['**/*.test.{ts,tsx}', '**/__tests__/**', '**/jest.setup.ts'],
     languageOptions: { globals: { ...globals.jest } },
+    rules: { 'no-console': 'off' },
+  },
+  {
+    // API de servidor: console é o log estruturado do processo.
+    files: ['apps/api/**/*.ts'],
+    languageOptions: { globals: { ...globals.node } },
     rules: { 'no-console': 'off' },
   },
 );

@@ -9,5 +9,6 @@ strictPeerDependencies: false
 allowBuilds:
   '@parcel/watcher': false
   '@sentry/cli': set this to true or false
+  esbuild: set this to true or false
   sharp: false
   unrs-resolver: false

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { apiFetch } from '@/lib/api';
 import { friendlyError, type ActionResult } from '@/lib/action';
 
 const planSchema = z.object({
@@ -33,10 +33,12 @@ export async function savePlan(fd: FormData): Promise<ActionResult> {
   await requireAdmin('editor');
   const parsed = read(fd);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]!.message };
-  const supabase = await createClient();
   const { id, ...rest } = parsed.data;
-  const { error } = await supabase.from('plans').update(rest).eq('id', id);
-  if (error) return { ok: false, error: friendlyError(error) };
+  try {
+    await apiFetch('PUT', `/admin/plans/${id}`, rest);
+  } catch (e) {
+    return { ok: false, error: friendlyError(e) };
+  }
   revalidatePath('/plans');
   return { ok: true, message: 'Plano atualizado' };
 }
@@ -45,9 +47,11 @@ export async function createPlan(fd: FormData): Promise<ActionResult> {
   await requireAdmin('editor');
   const parsed = read(fd);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]!.message };
-  const supabase = await createClient();
-  const { error } = await supabase.from('plans').insert({ ...parsed.data, is_default: false });
-  if (error) return { ok: false, error: friendlyError(error) };
+  try {
+    await apiFetch('POST', '/admin/plans', parsed.data);
+  } catch (e) {
+    return { ok: false, error: friendlyError(e) };
+  }
   revalidatePath('/plans');
   revalidatePath('/matrix');
   return { ok: true, message: 'Plano criado — configure as funcionalidades na matriz' };

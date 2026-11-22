@@ -1,9 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * E2E do painel contra o Supabase LOCAL (npx supabase start).
- * Requer .env.local com NEXT_PUBLIC_SUPABASE_URL/ANON_KEY e SUPABASE_SERVICE_ROLE_KEY no ambiente
- * (usada só pelo setup para criar usuários de teste).
+ * E2E do painel contra a API + Postgres locais.
+ * Requer a API rodando (API_URL, padrão http://127.0.0.1:56080) e o Postgres do docker compose
+ * (o setup cria os usuários de teste direto no banco local).
  */
 export default defineConfig({
   testDir: './e2e',

@@ -65,6 +65,8 @@ export const MIGRATIONS: string[][] = [
       remind_days_before INTEGER NOT NULL DEFAULT 1,
       notification_id TEXT)`,
   ],
+  // v2: dia âncora das contas recorrentes (31 → 28 fev → 31 mar)
+  [`ALTER TABLE bills ADD COLUMN anchor_day INTEGER`],
 ];
 
 export function getUserVersion(db: AppDB): number {

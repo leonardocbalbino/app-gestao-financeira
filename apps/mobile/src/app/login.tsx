@@ -8,16 +8,19 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import {
   sendEmailCode,
   signInWithApple,
-  signInWithGoogle,
   verifyEmailCode,
   type EmailFlow,
 } from '@/auth/authService';
 import { useAuth } from '@/auth/AuthProvider';
+import { GoogleButton, isGoogleConfigured } from '@/auth/GoogleButton';
+import { ApiRequestError } from '@/lib/api';
 import { analytics } from '@/lib/analytics';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function friendly(e: unknown): string {
+  if (e instanceof ApiRequestError && e.code === 'rate_limited') return e.message;
+  if (e instanceof ApiRequestError && e.status === 401) return e.message;
   const msg = (e as { message?: string })?.message ?? '';
   if (/rate limit/i.test(msg)) return 'Muitas tentativas. Aguarde um minuto e tente de novo.';
   if (/token|otp|expired|invalid/i.test(msg)) return 'Código inválido ou expirado.';
@@ -84,13 +87,20 @@ export default function LoginScreen() {
             onPress={async () => (await run('apple', signInWithApple)) && done()}
           />
         ) : null}
-        <Button
-          label="Continuar com Google"
-          variant="secondary"
-          disabled={!online}
-          loading={busy === 'google'}
-          onPress={async () => (await run('google', signInWithGoogle)) && done()}
-        />
+        {online && isGoogleConfigured() ? (
+          <GoogleButton
+            busy={busy === 'google'}
+            onStart={() => {
+              setBusy('google');
+              setError(undefined);
+            }}
+            onDone={(ok, e) => {
+              setBusy(null);
+              if (ok) done();
+              else if (e) setError(friendly(e));
+            }}
+          />
+        ) : null}
       </View>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: t.spacing.md }}>
@@ -149,7 +159,7 @@ export default function LoginScreen() {
                 loading={busy === 'verify'}
                 onPress={async () =>
                   (await run('verify', () =>
-                    verifyEmailCode(email.trim().toLowerCase(), code.trim(), flow),
+                    verifyEmailCode(email.trim().toLowerCase(), code.trim()),
                   )) && done()
                 }
               />

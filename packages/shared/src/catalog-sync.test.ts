@@ -3,12 +3,12 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { FEATURE_CATALOG } from './features';
 
-const migrationsDir = join(__dirname, '../../../supabase/migrations');
+const migrationsDir = join(__dirname, '../../../db/migrations');
 const lines = readdirSync(migrationsDir)
   .filter((f) => f.endsWith('.sql'))
   .flatMap((f) => readFileSync(join(migrationsDir, f), 'utf8').split(/\r?\n/));
 
-describe('catálogo × seed do Supabase', () => {
+describe('catálogo × seed do banco', () => {
   it.each(FEATURE_CATALOG.map((f) => [f.key, f] as const))(
     '%s está semeada com o mesmo tipo e default',
     (key, f) => {

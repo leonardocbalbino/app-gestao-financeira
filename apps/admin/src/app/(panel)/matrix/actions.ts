@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { apiFetch } from '@/lib/api';
 import { friendlyError, type ActionResult } from '@/lib/action';
 import { parseCellInput } from '@/lib/matrix';
 
@@ -15,14 +15,11 @@ export async function saveDraftCell(
   await requireAdmin('editor');
   const parsed = parseCellInput(featureKey, raw);
   if (!parsed.ok) return { ok: false, error: parsed.error };
-  const supabase = await createClient();
-  const { error } = await supabase.from('plan_features_draft').upsert({
-    plan_id: planId,
-    feature_key: featureKey,
-    value: parsed.value,
-    updated_at: new Date().toISOString(),
-  });
-  if (error) return { ok: false, error: friendlyError(error) };
+  try {
+    await apiFetch('PUT', '/admin/matrix/draft', { planId, featureKey, value: parsed.value });
+  } catch (e) {
+    return { ok: false, error: friendlyError(e) };
+  }
   revalidatePath('/matrix');
   return { ok: true, message: 'Rascunho atualizado' };
 }
@@ -32,30 +29,36 @@ export async function setPaywallVisible(
   visible: boolean,
 ): Promise<ActionResult> {
   await requireAdmin('editor');
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from('features')
-    .update({ paywall_visible: visible })
-    .eq('key', featureKey);
-  if (error) return { ok: false, error: friendlyError(error) };
+  try {
+    await apiFetch('PUT', `/admin/features/${encodeURIComponent(featureKey)}/paywall`, { visible });
+  } catch (e) {
+    return { ok: false, error: friendlyError(e) };
+  }
   revalidatePath('/matrix');
   return { ok: true, message: visible ? 'Exibida no paywall' : 'Oculta do paywall' };
 }
 
 export async function publishMatrix(): Promise<ActionResult> {
   await requireAdmin('editor');
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc('publish_plan_matrix');
-  if (error) return { ok: false, error: friendlyError(error) };
-  revalidatePath('/matrix');
-  return { ok: true, message: `Publicado: ${data} mudança(s). Os apps recebem em até ~1 min.` };
+  try {
+    const r = await apiFetch<{ changed: number }>('POST', '/admin/matrix/publish');
+    revalidatePath('/matrix');
+    return {
+      ok: true,
+      message: `Publicado: ${r.changed} mudança(s). Os apps recebem em até ~1 min.`,
+    };
+  } catch (e) {
+    return { ok: false, error: friendlyError(e) };
+  }
 }
 
 export async function discardDraft(): Promise<ActionResult> {
   await requireAdmin('editor');
-  const supabase = await createClient();
-  const { error } = await supabase.rpc('discard_plan_matrix_draft');
-  if (error) return { ok: false, error: friendlyError(error) };
+  try {
+    await apiFetch('POST', '/admin/matrix/discard');
+  } catch (e) {
+    return { ok: false, error: friendlyError(e) };
+  }
   revalidatePath('/matrix');
   return { ok: true, message: 'Rascunho descartado' };
 }

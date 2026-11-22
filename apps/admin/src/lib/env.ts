@@ -1,4 +1,7 @@
+/** URL da API (server-side). O painel nunca acessa o banco diretamente. */
 export const env = {
-  supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-  supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+  apiUrl: (process.env.API_URL ?? 'http://127.0.0.1:56080').replace(/\/$/, ''),
 };
+
+export const COOKIE_ACCESS = 'adm_at';
+export const COOKIE_REFRESH = 'adm_rt';

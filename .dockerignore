@@ -1,0 +1,13 @@
+**/node_modules
+**/.next
+**/.expo
+**/.turbo
+**/coverage
+**/test-results
+**/playwright-report
+**/.env
+**/.env.*
+!**/.env.example
+apps/mobile
+apps/admin
+.git

@@ -17,5 +17,8 @@ export function countUsage(db: AppDB, key: LimitFeatureKey): number {
       return 1;
     case 'history.months':
       return 0;
+    default:
+      // reminders.max e outros: contagem feita no servidor (que também impõe o limite).
+      return 0;
   }
 }

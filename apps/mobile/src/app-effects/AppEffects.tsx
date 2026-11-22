@@ -8,6 +8,10 @@ import { useFeature } from '@/entitlements';
 import { ensureAnonymousSession } from '@/auth/authService';
 import { usePrefs } from '@/state/prefs';
 import { analytics } from '@/lib/analytics';
+import * as Notifications from 'expo-notifications';
+import { router, type Href } from 'expo-router';
+import { useAuth } from '@/auth/AuthProvider';
+import { registerPushToken } from '@/lib/pushTokens';
 
 /** Efeitos globais do app (sem UI): recorrências agora; sync/ads/auth nas próximas fases. */
 export function AppEffects() {
@@ -15,6 +19,22 @@ export function AppEffects() {
   const qc = useQueryClient();
   const recurring = useFeature('transactions.recurring');
   const onboardingDone = usePrefs((s) => s.onboardingDone);
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+
+  // Token de push do aparelho vinculado ao usuário atual (sem pedir permissão aqui).
+  useEffect(() => {
+    if (userId) void registerPushToken(false).catch(() => undefined);
+  }, [userId]);
+
+  // Toque na notificação abre a tela indicada (ex.: /reminders).
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((r) => {
+      const url = r.notification.request.content.data?.url;
+      if (typeof url === 'string' && url.startsWith('/')) router.push(url as Href);
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     analytics.track('app_open');

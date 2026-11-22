@@ -108,3 +108,20 @@ describe('contas a pagar', () => {
     expect(payBill(db, bill.id)).toBeNull();
   });
 });
+
+describe('contas a pagar: dia âncora', () => {
+  it('mensal no dia 31 volta ao 31 depois de fevereiro', () => {
+    const bill = createBill(db, {
+      name: 'Cartão',
+      amountCents: 10000,
+      dueDate: '2026-01-31',
+      categoryId: null,
+      recurrence: 'monthly',
+      remindDaysBefore: 1,
+    });
+    const feb = payBill(db, bill.id)!.next!;
+    expect(feb.dueDate).toBe('2026-02-28');
+    const mar = payBill(db, feb.id)!.next!;
+    expect(mar.dueDate).toBe('2026-03-31');
+  });
+});

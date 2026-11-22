@@ -9,9 +9,19 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  MIGRATION_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:56432/gestao
+  DATABASE_URL: postgres://app_api:dev_app_api@127.0.0.1:56432/gestao
+  SERVICE_DATABASE_URL: postgres://app_service:dev_app_service@127.0.0.1:56432/gestao
+  APP_API_PASSWORD: dev_app_api
+  APP_SERVICE_PASSWORD: dev_app_service
+  JWT_SECRET: ci-segredo-com-mais-de-trinta-e-dois-caracteres-123
+  SMTP_URL: smtp://127.0.0.1:56026
+  FIXED_OTP_ACCOUNTS: free@gestao.local:123456,pro@gestao.local:123456
+
 jobs:
   checks:
-    name: Lint · Typecheck · Testes
+    name: Lint · Typecheck · Testes (API com Postgres real)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,6 +30,7 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - run: docker compose up -d --build --wait db mailpit
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
       - run: pnpm lint
@@ -27,18 +38,7 @@ jobs:
       - run: pnpm test
 
   database:
-    name: Supabase (migrations + pgTAP)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-      - run: supabase db start
-      - run: supabase test db
-
-  admin-e2e:
-    name: Admin E2E (Playwright + Supabase local)
+    name: Postgres (migrations + pgTAP)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,19 +47,34 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-      - run: supabase start -x vector,logflare,imgproxy,studio
+      - run: docker compose up -d --build --wait db
       - run: pnpm install --frozen-lockfile
-      - name: Variáveis do Supabase local
+      - run: pnpm --filter @app/api migrate
+      - run: docker compose exec -T db sh -c 'pg_prove -U postgres -d gestao /tests/*.sql'
+
+  admin-e2e:
+    name: Admin E2E (Playwright + API + Postgres)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: docker compose up -d --build --wait db mailpit
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @app/api migrate
+      - name: Sobe a API
         run: |
-          supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=' > /tmp/sb.env
-          source /tmp/sb.env
-          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
-          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
-          echo "::add-mask::$SERVICE_ROLE_KEY"
-          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          nohup pnpm --filter @app/api start > api.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:56080/health && exit 0; sleep 1; done
+          cat api.log; exit 1
       - run: pnpm --filter @app/admin build
+        env:
+          API_URL: http://127.0.0.1:56080
       - run: pnpm --filter @app/admin exec playwright install --with-deps chromium
-      - run: pnpm --filter @app/admin exec playwright test
+      - run: pnpm --filter @app/admin exec playwright test e2e/admin.spec.ts
+        env:
+          API_URL: http://127.0.0.1:56080
+          E2E_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:56432/gestao
