@@ -6,9 +6,10 @@ nodeLinker: hoisted
 autoInstallPeers: true
 strictPeerDependencies: false
 
+# pnpm 12 exige aprovação explícita de scripts de build (falha no CI com --frozen-lockfile).
 allowBuilds:
   '@parcel/watcher': false
-  '@sentry/cli': set this to true or false
-  esbuild: set this to true or false
+  '@sentry/cli': true
+  esbuild: true
   sharp: false
   unrs-resolver: false
